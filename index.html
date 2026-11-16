@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lietuvių kalba</title>
+<link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2F4B3C">
+<link rel="apple-touch-icon" href="images/icon-192.png">
+</head>
+<body>
+<div id="auth" hidden>
+  <div class="auth-card">
+    <h1>Lietuvių kalba</h1>
+    <p class="sub">Your progress is saved on this device.</p>
+    <div class="pills" role="tablist"><button type="button" id="tab-login" class="on" data-act="authtab" data-v="login">Log in</button><button type="button" id="tab-signup" data-act="authtab" data-v="signup">Sign up</button></div>
+    <form id="authform" autocomplete="on">
+      <div id="au-accounts" hidden>
+        <label for="au-pick">Accounts on this device</label>
+        <select id="au-pick"></select>
+      </div>
+      <label for="au-user">Username</label>
+      <input id="au-user" name="username" autocomplete="username" placeholder="3-24 letters, numbers, _ or -">
+      <label for="au-pass">Password</label>
+      <input id="au-pass" name="password" type="password" autocomplete="current-password" placeholder="At least 4 characters">
+      <div class="err" id="au-err" role="alert"></div>
+      <button type="button" class="linkbtn" id="au-forgot" data-act="forgot">Forgot password?</button>
+      <button class="btn green full" id="au-submit" type="button">Log in</button>
+    </form>
+    <button type="button" class="linkbtn skip" data-act="guest">Continue without an account</button>
+    <div class="note" id="au-note">Accounts and progress are stored in this browser only.</div>
+  </div>
+</div>
+
+<div class="wrap" id="app" hidden>
+  <header>
+    <div><h1>Lietuvių kalba</h1><p>Beginner vocabulary, learned one card at a time.</p></div>
+    <div class="stat"><b id="stat-n" class="serif"></b><span id="stat-c"></span></div>
+  </header>
+  <div id="offer"></div>
+  <div class="goal" id="goal"></div>
+  <div class="toolbar"><nav class="tabs" id="tabs"></nav><input id="search" class="search" type="search" placeholder="Search" autocomplete="off" aria-label="Search words and sentences"></div>
+  <div class="tiers">
+    <div class="tierrow" id="row1"><span class="tierlabel">Category</span><div class="chips" id="chips"></div></div>
+    <div class="tierrow" id="row2"><span class="tierlabel">Subcategory</span><div class="chips" id="chips2"></div></div>
+    <div class="tierrow" id="row3"><span class="tierlabel">Filter</span><div class="chips" id="chips3"></div></div>
+  </div>
+  <div class="bar"><i id="barfill"></i></div>
+  <main id="stage"></main>
+  <footer>
+    <div id="sync"></div>
+    <div id="syncnote" aria-live="polite"></div>
+    <div id="prefs"></div>
+    <div id="voicenote"></div>
+    <div id="reset"></div>
+    <div id="backup"></div>
+  </footer>
+</div>
+<script src="app.js"></script>
+<script>if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(function(){});</script>
+</body>
+</html>
