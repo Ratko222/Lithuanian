@@ -2,7 +2,7 @@
 
 Static Lithuanian learning app. No backend; progress is stored in the browser (localStorage) and can be exported/imported as a JSON file.
 
-Files: `index.html`, `style.css`, `app.js`, `data.json` (vocabulary and sentences), `grammar.json`, `forms.json` (meanings of inflected word forms for tap-a-word), `fonts/` (Literata and Manrope, bundled, SIL Open Font License), `manifest.json` and `sw.js` (phone install and offline use).
+Files: `index.html`, `style.css`, `app.js`, `data.json` (vocabulary and sentences), `grammar.json`, `exam.js` (Exam prep tab: written drills, mock test, speaking practice), `forms.json` (meanings of inflected word forms for tap-a-word), `fonts/` (Literata and Manrope, bundled, SIL Open Font License), `manifest.json` and `sw.js` (phone install and offline use).
 
 The app loads the JSON files with `fetch`, so serve the folder over HTTP:
 

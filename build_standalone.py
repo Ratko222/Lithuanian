@@ -30,6 +30,7 @@ html = re.sub(r'<link href="https://fonts\.googleapis\.com[^>]*>\n?', '', html)
 html = re.sub(r'<meta name="theme-color"[^>]*>\n?', '', html)
 html = re.sub(r'<script>if\("serviceWorker".*?</script>\n?', '', html, flags=re.S)
 html = html.replace('<link rel="stylesheet" href="style.css">', '<style>\n' + css + '</style>')
+html = html.replace('<script src="exam.js"></script>', '<script>\n' + read('exam.js') + '</script>')
 html = html.replace('<script src="app.js"></script>', '<script>\n' + js + '</script>')
 with open('lithuanian-flashcards.html', 'w', encoding='utf-8') as f:
     f.write(html)

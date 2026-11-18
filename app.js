@@ -65,6 +65,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
       if(!ltVoice && !voiceWarned){ voiceWarned = true; const v = $('#voicenote'); if(v) v.textContent = 'No Lithuanian voice was found on this device, so audio may not sound right.'; }
     }catch(e){}
   }
+  const EXAM = initExam({words: WORDS, esc, speak, hasTTS, pictures: ['iylt', 'natscene'].map(id => { const c = CATS.find(x => x.id === id); return c && c.image ? {id, title: id === 'iylt' ? 'The Addams family' : 'Nature scene', img: c.image, sentences: (c.full || []).map(f => ({lt: f.lt, en: f.en}))} : null; }).filter(Boolean)});
   const SPK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4.03v8.05A4.5 4.5 0 0 0 16.5 12zM14 3.23v2.06a7 7 0 0 1 0 13.42v2.06a9 9 0 0 0 0-17.54z"/></svg>';
   const spk = (t, lg) => hasTTS ? `<button type="button" class="spk ${lg?'lg':''}" data-act="speak" data-t="${esc(t)}" aria-label="Play audio">${SPK_ICON}</button>` : '';
 
@@ -231,7 +232,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
     $('#au-pass').value = ''; setAuthMode('login');
   }
 
-  const MODES = {flash:'Flashcards', sent:'Build sentences', full:'Full sentences', listen:'Listening', match:'Speed match', scramble:'Word scramble', gram:'Grammar'};
+  const MODES = {exam:'Exam prep', flash:'Flashcards', sent:'Build sentences', full:'Full sentences', listen:'Listening', match:'Speed match', scramble:'Word scramble', gram:'Grammar'};
   const isGame = () => mode === 'match' || mode === 'scramble';
   const NOUN = {flash:'word', sent:'sentence', full:'sentence', listen:'word', gram:'question', match:'word', scramble:'word'};
   let mode = 'flash', catId = 'all', groupId = 'all', statusF = '', queue = [], activeTask = null, matchGame = null, scrambleGame = null, timerId = null, restartAsk = false, pendingBackup = null, guestOffer = null, listenAnyway = false, resetAsk = false, searchQ = '', backupOpen = false;
@@ -330,6 +331,12 @@ async function startApp(CATS, GRAMMAR, FORMS){
   function streakNow(){ const s = progress.streak; return (s.last === today() || s.last === yesterday()) ? s.n : 0; }
 
   function renderChrome(){
+    const inExam = mode === 'exam';
+    ['.tiers', '#goal', '.bar'].forEach(sel => { const el = $(sel); if(el) el.hidden = inExam; });
+    if(inExam){
+      $('#tabs').innerHTML = Object.keys(MODES).map(m => `<button type="button" class="${m===mode?'on':''}" data-act="mode" data-v="${m}">${MODES[m]}</button>`).join('');
+      return;
+    }
     validCat();
     $('#tabs').innerHTML = Object.keys(MODES).map(m => `<button type="button" class="${m===mode?'on':''}" data-act="mode" data-v="${m}">${MODES[m]}</button>`).join('');
     const src = srcFor(mode), list = topicsForMode(), grp = groupOf(groupId);
@@ -409,6 +416,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
       else if(!searchQ && timed.pausedAt){ timed.start += performance.now() - timed.pausedAt; timed.pausedAt = null; }
     }
     if(searchQ){ st.innerHTML = stageSearch(); return; }
+    if(mode === 'exam'){ EXAM.mount(st); return; }
     st.innerHTML = ({flash:stageFlash, sent:stageSent, full:stageFull, listen:stageListen, match:stageMatch, scramble:stageScramble, gram:stageGram})[mode]();
     const inp = $('#tin'); if(inp && !inp.disabled) inp.focus({preventScroll:true});
     if(activeTask && !activeTask.spoken){
@@ -928,7 +936,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
     'forgot': (v, t) => { setAuthMode(authMode === 'reset' ? 'login' : 'reset'); },
     'guest': (v, t) => { enter(null); },
     'speak': (v, t) => { speak(t.dataset.t); },
-    'mode': (v, t) => { mode = v; searchQ = ''; $('#search').value = ''; validCat(); rebuild(); render(); },
+    'mode': (v, t) => { mode = v; searchQ = ''; $('#search').value = ''; if(v !== 'exam'){ validCat(); rebuild(); } render(); },
     'grp': (v, t) => { groupId = v; catId = 'all'; searchQ = ''; $('#search').value = ''; rebuild(); render(); },
     'cat': (v, t) => { catId = v; searchQ = ''; $('#search').value = ''; rebuild(); render(); },
     'week': () => { weekOpen = !weekOpen; renderChrome(); },
