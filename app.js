@@ -235,7 +235,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
   const MODES = {exam:'Exam prep', flash:'Flashcards', sent:'Build sentences', full:'Full sentences', listen:'Listening', match:'Speed match', scramble:'Word scramble', gram:'Grammar'};
   const isGame = () => mode === 'match' || mode === 'scramble';
   const NOUN = {flash:'word', sent:'sentence', full:'sentence', listen:'word', gram:'question', match:'word', scramble:'word'};
-  let mode = 'flash', catId = 'all', groupId = 'all', statusF = '', queue = [], activeTask = null, matchGame = null, scrambleGame = null, timerId = null, restartAsk = false, pendingBackup = null, guestOffer = null, listenAnyway = false, resetAsk = false, searchQ = '', backupOpen = false;
+  let mode = 'flash', catId = 'all', groupId = 'all', statusF = '', queue = [], activeTask = null, matchGame = null, scrambleGame = null, timerId = null, restartAsk = false, pendingBackup = null, guestOffer = null, listenAnyway = false, resetAsk = false, searchQ = '', backupOpen = false, topicOpen = false, searchOpen = false;
   const REVIEW_MIN_GAP = 30, REVIEW_CHANCE = 0.1, REVIEW_COOLDOWN_DAYS = 3;
   let sinceReview = 0;
   const srcFor = m => m === 'sent' ? SENTS : m === 'full' ? FULL : m === 'gram' ? GR : WORDS;
@@ -330,15 +330,20 @@ async function startApp(CATS, GRAMMAR, FORMS){
   }
   function streakNow(){ const s = progress.streak; return (s.last === today() || s.last === yesterday()) ? s.n : 0; }
 
+  const SHORT = {exam:'Exam', flash:'Cards', sent:'Build', full:'Full', listen:'Listen', match:'Match', scramble:'Scramble', gram:'Grammar'};
   function renderChrome(){
     const inExam = mode === 'exam';
-    ['.tiers', '#goal', '.bar'].forEach(sel => { const el = $(sel); if(el) el.hidden = inExam; });
+    ['#goal', '.bar', '#topicbtn'].forEach(sel => { const el = $(sel); if(el) el.hidden = inExam; });
+    $('.tiers').hidden = inExam || !topicOpen;
+    $('#search').hidden = !(searchOpen || searchQ);
+    $('#searchbtn').setAttribute('aria-expanded', String(!$('#search').hidden));
+    $('#topicbtn').setAttribute('aria-expanded', String(!inExam && topicOpen));
     if(inExam){
-      $('#tabs').innerHTML = Object.keys(MODES).map(m => `<button type="button" class="${m===mode?'on':''}" data-act="mode" data-v="${m}">${MODES[m]}</button>`).join('');
+      $('#tabs').innerHTML = Object.keys(MODES).map(m => `<button type="button" class="${m===mode?'on':''}" data-act="mode" data-v="${m}"><span class="lg">${MODES[m]}</span><span class="sh">${SHORT[m]}</span></button>`).join('');
       return;
     }
     validCat();
-    $('#tabs').innerHTML = Object.keys(MODES).map(m => `<button type="button" class="${m===mode?'on':''}" data-act="mode" data-v="${m}">${MODES[m]}</button>`).join('');
+    $('#tabs').innerHTML = Object.keys(MODES).map(m => `<button type="button" class="${m===mode?'on':''}" data-act="mode" data-v="${m}"><span class="lg">${MODES[m]}</span><span class="sh">${SHORT[m]}</span></button>`).join('');
     const src = srcFor(mode), list = topicsForMode(), grp = groupOf(groupId);
     const cnt = pred => { const ks = src.filter(pred).map(x => x.key); return isGame() ? ks.length : [ks.filter(isMastered).length, ks.length]; };
     const badge = c => isGame() ? `${c} words` : `${c[0]}/${c[1]}`;
@@ -367,6 +372,14 @@ async function startApp(CATS, GRAMMAR, FORMS){
       const sc = statusF; statusF = ''; const kn = knownKeys().length, tr = troubleKeys().length, du = mode === 'flash' ? dueKeys().length : 0; statusF = sc;
       $('#chips3').innerHTML = (mode === 'flash' ? chipH('stat', 'due', 'Due now', du, statusF === 'due', 't3') : '') + chipH('stat', 'known', 'Know it', kn, statusF === 'known', 't3') + chipH('stat', 'trouble', 'Trouble words', tr, statusF === 'trouble', 't3');
     }
+    {
+      const parts = [];
+      if(mode !== 'gram' && groupId !== 'all' && grp) parts.push(grp.name);
+      if(catId !== 'all'){ const t2 = list.find(t => t.id === catId); if(t2) parts.push(t2.name); }
+      const stl = {due:'Due now', known:'Know it', trouble:'Trouble words'}[statusF];
+      const lab = parts.length ? parts.join(' \u203a ') : allLabel;
+      $('#topicbtn').innerHTML = `<span class="tk">${mode === 'gram' ? 'Topic' : 'Category'}</span><span class="tv">${esc(lab)}</span>${stl ? `<span class="tf">${stl}</span>` : ''}<span class="car" aria-hidden="true">${topicOpen ? '\u25b4' : '\u25be'}</span>`;
+    }
     let n, c, pct = 0;
     const scopeWords = WORDS.filter(w => inScope(w.cat)).length;
     if(mode === 'scramble'){ const b = progress.scramble[scopeKey()]; n = b != null ? b + ' / 50' : '\u2014'; c = 'best score'; }
@@ -380,7 +393,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
     }
     $('#stat-n').textContent = n; $('#stat-c').textContent = c; $('#barfill').style.width = pct + '%';
     const d = today(), cnt0 = progress.daily.date === d ? progress.daily.count : 0, met = cnt0 >= progress.goal, st = streakNow();
-    $('#goal').innerHTML = `<span>Today <b>${cnt0}</b> / ${esc(String(progress.goal))} answers</span><span class="gbar ${met?'met':''}" role="progressbar" aria-valuemin="0" aria-valuemax="${progress.goal}" aria-valuenow="${Math.min(cnt0, progress.goal)}"><i style="width:${Math.min(100, cnt0 / progress.goal * 100)}%"></i></span><span>${st ? `<b>${st}</b>-day streak` : 'No streak yet'}</span><button type="button" class="linkbtn" data-act="goal">Change goal</button>`;
+    $('#goal').innerHTML = `<span>Today <b>${cnt0}</b>/${esc(String(progress.goal))}</span><span class="gbar ${met?'met':''}" role="progressbar" aria-valuemin="0" aria-valuemax="${progress.goal}" aria-valuenow="${Math.min(cnt0, progress.goal)}"><i style="width:${Math.min(100, cnt0 / progress.goal * 100)}%"></i></span>${st ? `<span><b>${st}</b>-day streak</span>` : ''}<button type="button" class="linkbtn" data-act="goal">Edit goal</button>`;
     renderOffer();
     $('#sync').innerHTML = (user ? `Signed in as ${esc(user)} · <button type="button" class="linkbtn" data-act="logout">Log out</button>`
       : `Playing as guest (progress is kept on this device) · <button type="button" class="linkbtn" data-act="exit">Log in or sign up</button>`)
@@ -936,11 +949,13 @@ async function startApp(CATS, GRAMMAR, FORMS){
     'forgot': (v, t) => { setAuthMode(authMode === 'reset' ? 'login' : 'reset'); },
     'guest': (v, t) => { enter(null); },
     'speak': (v, t) => { speak(t.dataset.t); },
-    'mode': (v, t) => { mode = v; searchQ = ''; $('#search').value = ''; if(v !== 'exam'){ validCat(); rebuild(); } render(); },
-    'grp': (v, t) => { groupId = v; catId = 'all'; searchQ = ''; $('#search').value = ''; rebuild(); render(); },
-    'cat': (v, t) => { catId = v; searchQ = ''; $('#search').value = ''; rebuild(); render(); },
+    'topic': () => { topicOpen = !topicOpen; renderChrome(); },
+    'searchtoggle': () => { searchOpen = !searchOpen; if(!searchOpen && searchQ){ searchQ = ''; $('#search').value = ''; renderStage(); } renderChrome(); if(searchOpen) $('#search').focus(); },
+    'mode': (v, t) => { topicOpen = false; mode = v; searchQ = ''; $('#search').value = ''; if(v !== 'exam'){ validCat(); rebuild(); } render(); },
+    'grp': (v, t) => { if(v === 'all') topicOpen = false; groupId = v; catId = 'all'; searchQ = ''; $('#search').value = ''; rebuild(); render(); },
+    'cat': (v, t) => { topicOpen = false; catId = v; searchQ = ''; $('#search').value = ''; rebuild(); render(); },
     'week': () => { weekOpen = !weekOpen; renderChrome(); },
-    'stat': (v, t) => { statusF = (statusF === v ? '' : v); searchQ = ''; $('#search').value = ''; rebuild(); render(); },
+    'stat': (v, t) => { topicOpen = false; statusF = (statusF === v ? '' : v); searchQ = ''; $('#search').value = ''; rebuild(); render(); },
     'flip': (v, t) => { if(activeTask && !activeTask.flipped){ activeTask.flipped = true; $('#flip').classList.add('flipped'); $('#acts').classList.add('show'); if(prefs.auto && activeTask.dir === 'en') speak(wordsByKey[activeTask.key].lt); } },
     'know': (v, t) => { recordRecognition(true); },
     'dont': (v, t) => { recordRecognition(false); },

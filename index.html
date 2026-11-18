@@ -40,8 +40,10 @@
   </header>
   <div id="offer"></div>
   <div class="goal" id="goal"></div>
-  <div class="toolbar"><nav class="tabs" id="tabs"></nav><input id="search" class="search" type="search" placeholder="Search" autocomplete="off" aria-label="Search words and sentences"></div>
-  <div class="tiers">
+  <div class="toolbar"><nav class="tabs" id="tabs"></nav></div>
+  <div class="topbar"><button type="button" id="topicbtn" class="topicbtn" data-act="topic" aria-expanded="false"></button><button type="button" id="searchbtn" class="iconbtn" data-act="searchtoggle" aria-label="Search" aria-expanded="false"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button></div>
+  <input id="search" class="search" type="search" placeholder="Search words and sentences" autocomplete="off" aria-label="Search words and sentences" hidden>
+  <div class="tiers" id="topicpanel" hidden>
     <div class="tierrow" id="row1"><span class="tierlabel">Category</span><div class="chips" id="chips"></div></div>
     <div class="tierrow" id="row2"><span class="tierlabel">Subcategory</span><div class="chips" id="chips2"></div></div>
     <div class="tierrow" id="row3"><span class="tierlabel">Filter</span><div class="chips" id="chips3"></div></div>
