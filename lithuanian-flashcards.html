@@ -592,7 +592,7 @@ function initExam(ctx){
     return `<div class="ex">
       <h2 class="serif ex-h">Exam preparation</h2>
       <p class="ex-p">Written part first, then the speaking part. Typing without the Lithuanian letters (ą č ę ė į š ų ū ž) counts as half a point in the mock test, so practise the letters.</p>
-      <div class="ex-mock"><div><b>Mock written test</b><span>30 questions across all six topics, marked at the end${last ? ` · last ${last.score}/${last.total}` : ''}${saved.best.mock != null ? ` · best ${saved.best.mock}%` : ''}</span></div><button type="button" class="btn green" data-ex="mock">Start mock test</button></div>
+      <div class="ex-mock"><div><b>Mock written test</b><span>30 questions across all six topics, answer shown after each one${last ? ` · last ${last.score}/${last.total}` : ''}${saved.best.mock != null ? ` · best ${saved.best.mock}%` : ''}</span></div><button type="button" class="btn green" data-ex="mock">Start mock test</button></div>
       <h3 class="ex-h3">✍️ Written part</h3><div class="ex-grid">${wr}</div>
       <h3 class="ex-h3">🗣️ Speaking part</h3>
       <p class="ex-p">The app cannot hear you, so say every answer out loud, then check it against the model. Use the speaker buttons to hear how it sounds.</p>
@@ -613,7 +613,7 @@ function initExam(ctx){
     if(q.kind === 'mcq'){
       body += `<div class="ex-opts">${q.options.map((o, k) => `<button type="button" class="ex-opt" data-ex="opt" data-v="${k}">${esc(o)}</button>`).join('')}</div>`;
     }else{
-      body += `<div class="ex-ans"><input id="exin" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Your answer" placeholder="${q.exact ? 'digits' : 'Your answer in Lithuanian'}"><button type="button" class="btn green" data-ex="submit">${mock ? 'Next' : 'Check'}</button></div>`;
+      body += `<div class="ex-ans"><input id="exin" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Your answer" placeholder="${q.exact ? 'digits' : 'Your answer in Lithuanian'}"><button type="button" class="btn green" data-ex="submit">Check</button></div>`;
     }
     return prog + body + '<div id="exfb"></div>';
   }
@@ -764,14 +764,13 @@ function initExam(ctx){
   }
 
   function submitTyped(){
-    const s = session, q = s.qs[s.i]; if(s.answered && !s.mock) { advance(); return; }
+    const s = session, q = s.qs[s.i]; if(s.answered){ advance(); return; }
     const inp = root.querySelector('#exin'); const val = inp ? inp.value : '';
     let res;
     if(q.grade) res = q.grade(val);
     else if(q.exact) res = norm(val) === q.answers[0] ? 'ok' : 'no';
     else res = gradeText(val, q.answers);
     record(res, val);
-    if(s.mock){ advance(); return; }
     s.answered = true;
     inp.disabled = true;
     const fb = root.querySelector('#exfb');
@@ -784,7 +783,6 @@ function initExam(ctx){
     const s = session, q = s.qs[s.i]; if(s.answered) return;
     const res = k === q.answer ? 'ok' : 'no';
     record(res, q.options[k]);
-    if(s.mock){ advance(); return; }
     s.answered = true;
     root.querySelectorAll('.ex-opt').forEach((b, i) => { b.disabled = true; if(i === q.answer) b.classList.add('right'); else if(i === k) b.classList.add('wrong'); });
     root.querySelector('#exfb').innerHTML = `<div class="ex-fb ${res === 'ok' ? 'ok' : 'no'}">${res === 'ok' ? 'Correct.' : 'Not quite. Answer: <b>' + esc(q.show) + '</b>'}</div>${q.note ? `<div class="ex-note">${esc(q.note)}</div>` : ''}<div class="ex-actions"><button type="button" class="btn green" data-ex="next">Next</button></div>`;
