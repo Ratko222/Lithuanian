@@ -288,4 +288,4 @@ footer a,footer .linkbtn{color:var(--soft)}
   #topicpanel .tierrow .chips{flex-wrap:wrap;overflow:visible;padding-bottom:6px}
 }
 @media (min-width:521px){.toolbar .tabs{display:flex;width:100%}.toolbar .tabs button{flex:1 1 auto;padding:9px 10px}}
-@media (min-width:521px) and (max-width:960px){.toolbar .tabs{display:grid;grid-template-columns:repeat(8,1fr);overflow:visible}.tabs .lg{display:none}.tabs .sh{display:inline}.toolbar .tabs button{padding:9px 2px;text-align:center}}
+@media (min-width:521px) and (max-width:960px){.toolbar .tabs{display:grid;grid-template-columns:repeat(7,1fr);overflow:visible}.tabs .lg{display:none}.tabs .sh{display:inline}.toolbar .tabs button{padding:9px 2px;text-align:center}}

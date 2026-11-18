@@ -232,7 +232,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
     $('#au-pass').value = ''; setAuthMode('login');
   }
 
-  const MODES = {exam:'Exam prep', flash:'Flashcards', sent:'Build sentences', full:'Full sentences', listen:'Listening', match:'Speed match', scramble:'Word scramble', gram:'Grammar'};
+  const MODES = {exam:'Exam prep', flash:'Flashcards', sent:'Build sentences', full:'Full sentences', match:'Speed match', scramble:'Word scramble', gram:'Grammar'};
   const isGame = () => mode === 'match' || mode === 'scramble';
   const NOUN = {flash:'word', sent:'sentence', full:'sentence', listen:'word', gram:'question', match:'word', scramble:'word'};
   let mode = 'flash', catId = 'all', groupId = 'all', statusF = '', queue = [], activeTask = null, matchGame = null, scrambleGame = null, timerId = null, restartAsk = false, pendingBackup = null, guestOffer = null, listenAnyway = false, resetAsk = false, searchQ = '', backupOpen = false, topicOpen = false, searchOpen = false;
@@ -330,7 +330,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
   }
   function streakNow(){ const s = progress.streak; return (s.last === today() || s.last === yesterday()) ? s.n : 0; }
 
-  const SHORT = {exam:'Exam', flash:'Cards', sent:'Build', full:'Full', listen:'Listen', match:'Match', scramble:'Scramble', gram:'Grammar'};
+  const SHORT = {exam:'Exam', flash:'Cards', sent:'Build', full:'Full', match:'Match', scramble:'Scramble', gram:'Grammar'};
   function renderChrome(){
     const inExam = mode === 'exam';
     ['#goal', '.bar', '#topicbtn'].forEach(sel => { const el = $(sel); if(el) el.hidden = inExam; });
