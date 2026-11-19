@@ -1347,7 +1347,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
       <div class="face">${top}<div class="big">${esc(front)}</div>${frontSpk}<div class="hint">${hint}</div></div>
       <div class="face back">${top}<div class="big">${esc(back)}</div>${backSpk}<div class="pron">${esc(w.pr)}</div>${rootLine(w)}${breakdown(w.lt)}</div>
     </div></div>
-    <div class="actions ${activeTask.flipped?'show':''}" id="acts"><button type="button" class="btn red" data-act="dont">Don’t know it</button><button type="button" class="btn green" data-act="know">I know it!</button></div>
+    <div class="actions ${activeTask.seen?'show':''}" id="acts"><button type="button" class="btn red" data-act="dont">Don’t know it</button><button type="button" class="btn green" data-act="know">I know it!</button></div>
     ${activeTask.review ? '' : '<button type="button" class="linkbtn" data-act="already">I already know this word</button>'}`;
   }
   function already(){
@@ -1801,7 +1801,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
     'cat': (v, t) => { topicOpen = false; catId = v; searchQ = ''; $('#search').value = ''; rebuild(); render(); },
     'week': () => { weekOpen = !weekOpen; renderChrome(); },
     'stat': (v, t) => { topicOpen = false; statusF = (statusF === v ? '' : v); searchQ = ''; $('#search').value = ''; rebuild(); render(); },
-    'flip': (v, t) => { if(activeTask && !activeTask.flipped){ activeTask.flipped = true; $('#flip').classList.add('flipped'); $('#acts').classList.add('show'); if(prefs.auto && activeTask.dir === 'en') speak(wordsByKey[activeTask.key].lt); } },
+    'flip': (v, t) => { if(!activeTask) return; const first = !activeTask.seen; activeTask.flipped = !activeTask.flipped; activeTask.seen = true; $('#flip').classList.toggle('flipped', activeTask.flipped); $('#acts').classList.add('show'); if(first && activeTask.flipped && prefs.auto && activeTask.dir === 'en') speak(wordsByKey[activeTask.key].lt); },
     'know': (v, t) => { recordRecognition(true); },
     'dont': (v, t) => { recordRecognition(false); },
     'requeue': (v, t) => { rebuild(); render(); },
