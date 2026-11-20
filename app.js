@@ -65,7 +65,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
       if(!ltVoice && !voiceWarned){ voiceWarned = true; const v = $('#voicenote'); if(v) v.textContent = 'No Lithuanian voice was found on this device, so audio may not sound right.'; }
     }catch(e){}
   }
-  const EXAM = initExam({words: WORDS, esc, speak, hasTTS, pictures: ['iylt', 'natscene'].map(id => { const c = CATS.find(x => x.id === id); return c && c.image ? {id, title: id === 'iylt' ? 'The Addams family' : 'Nature scene', img: c.image, sentences: (c.full || []).map(f => ({lt: f.lt, en: f.en}))} : null; }).filter(Boolean)});
+  const EXAM = initExam({words: WORDS, esc, speak, hasTTS, pictures: ['iylt', 'natscene'].map(id => { const c = CATS.find(x => x.id === id); return c && c.image ? {id, title: id === 'iylt' ? 'Family at home' : 'Nature scene', img: c.image, sentences: (c.full || []).map(f => ({lt: f.lt, en: f.en}))} : null; }).filter(Boolean)});
   const SPK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4.03v8.05A4.5 4.5 0 0 0 16.5 12zM14 3.23v2.06a7 7 0 0 1 0 13.42v2.06a9 9 0 0 0 0-17.54z"/></svg>';
   const spk = (t, lg) => hasTTS ? `<button type="button" class="spk ${lg?'lg':''}" data-act="speak" data-t="${esc(t)}" aria-label="Play audio">${SPK_ICON}</button>` : '';
 
