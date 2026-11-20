@@ -1074,3 +1074,20 @@ Promise.all(['data.json', 'grammar.json', 'forms.json'].map(f => fetch(f).then(r
   });
   show();
 })();
+
+/* Anonymous visit/install counting (GoatCounter). Set GC_CODE to your site code to turn it on; leave '' to send nothing. */
+(function(){
+  const GC_CODE = '';
+  if(!GC_CODE || !/^https?:$/.test(location.protocol)) return;
+  const note = document.getElementById('au-stats'); if(note) note.hidden = false;
+  const sc = document.createElement('script');
+  sc.async = true; sc.src = 'https://gc.zgo.at/count.js';
+  sc.dataset.goatcounter = 'https://' + GC_CODE + '.goatcounter.com/count';
+  document.head.appendChild(sc);
+  window.addEventListener('appinstalled', () => {
+    try{ window.goatcounter && window.goatcounter.count({path:'app-installed', title:'App installed', event:true}); }catch(e){}
+  });
+  if(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches)){
+    sc.addEventListener('load', () => { try{ window.goatcounter.count({path:'opened-as-app', title:'Opened as installed app', event:true}); }catch(e){} });
+  }
+})();
