@@ -232,7 +232,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
     $('#au-pass').value = ''; setAuthMode('login');
   }
 
-  const MODES = {exam:'Exam prep', flash:'Flashcards', sent:'Build sentences', full:'Full sentences', match:'Speed match', scramble:'Word scramble', gram:'Grammar'};
+  const MODES = {exam:'Exam prep', photos:'Photos', flash:'Flashcards', sent:'Build sentences', full:'Full sentences', match:'Speed match', scramble:'Word scramble', gram:'Grammar'};
   const isGame = () => mode === 'match' || mode === 'scramble';
   const NOUN = {flash:'word', sent:'sentence', full:'sentence', listen:'word', gram:'question', match:'word', scramble:'word'};
   let mode = 'flash', catId = 'all', groupId = 'all', statusF = '', queue = [], activeTask = null, matchGame = null, scrambleGame = null, timerId = null, restartAsk = false, pendingBackup = null, guestOffer = null, listenAnyway = false, resetAsk = false, searchQ = '', backupOpen = false, topicOpen = false, searchOpen = false;
@@ -244,7 +244,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
   const isMastered = k => mode === 'flash' ? !!(progress.flash[k] && progress.flash[k].mastered) : level(k) >= 3;
   const GROUPS = [
     {id:'basics', name:'Basics', cats:['greetings','phrases','numbers','colors','days','months','time']},
-    {id:'pictures', name:'Pictures', cats:['iylt','natscene']},
+    {id:'pictures', name:'Photos', cats:['iylt','natscene']},
     {id:'people', name:'People', cats:['family','identity','relationships']},
     {id:'food', name:'Food', cats:['food','meat','fish','dairy','bakery','vegetables','fruits','canned','meals','dining']},
     {id:'shopping', name:'Shopping & Services', cats:['supermarket','shopping','shopping-phrases','commerce','services']},
@@ -331,9 +331,17 @@ async function startApp(CATS, GRAMMAR, FORMS){
   }
   function streakNow(){ const s = progress.streak; return (s.last === today() || s.last === yesterday()) ? s.n : 0; }
 
-  const SHORT = {exam:'Exam', flash:'Cards', sent:'Build', full:'Full', match:'Match', scramble:'Scramble', gram:'Grammar'};
+  function stagePhotos(){
+    const pics = CATS.filter(c => c.image);
+    const card = c => {
+      const ks = FULL.filter(x => x.cat === c.id), done = ks.filter(x => (progress.full[x.key] || 0) >= 3).length;
+      return `<div class="photo-card"><img src="${esc(c.image)}" alt="${esc(c.imageAlt || c.name)}" loading="lazy"><div class="photo-body"><h3>${esc(c.name)}</h3><p>${done}/${ks.length} sentences mastered</p><div class="photo-btns"><button type="button" class="btn green" data-act="photo" data-v="${esc(c.id)}|full">Full sentences</button><button type="button" class="btn" data-act="photo" data-v="${esc(c.id)}|sent">Build sentences</button></div></div></div>`;
+    };
+    return `<div class="photos"><h2>Photos</h2><p class="sub">Describe what you see, one sentence at a time. Pick a picture to practise its sentences.</p><div class="photo-grid">${pics.map(card).join('')}</div></div>`;
+  }
+  const SHORT = {exam:'Exam', photos:'Photos', flash:'Cards', sent:'Build', full:'Full', match:'Match', scramble:'Scramble', gram:'Grammar'};
   function renderChrome(){
-    const inExam = mode === 'exam';
+    const inExam = mode === 'exam' || mode === 'photos';
     ['#goal', '.bar', '#topicbtn'].forEach(sel => { const el = $(sel); if(el) el.hidden = inExam; });
     $('.tiers').hidden = inExam || !topicOpen;
     $('#search').hidden = !(searchOpen || searchQ);
@@ -431,6 +439,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
     }
     if(searchQ){ st.innerHTML = stageSearch(); return; }
     if(mode === 'exam'){ EXAM.mount(st); return; }
+    if(mode === 'photos'){ st.innerHTML = stagePhotos(); return; }
     st.innerHTML = ({flash:stageFlash, sent:stageSent, full:stageFull, listen:stageListen, match:stageMatch, scramble:stageScramble, gram:stageGram})[mode]();
     const inp = $('#tin'); if(inp && !inp.disabled) inp.focus({preventScroll:true});
     if(activeTask && !activeTask.spoken){
@@ -952,7 +961,8 @@ async function startApp(CATS, GRAMMAR, FORMS){
     'speak': (v, t) => { speak(t.dataset.t); },
     'topic': () => { topicOpen = !topicOpen; renderChrome(); },
     'searchtoggle': () => { searchOpen = !searchOpen; if(!searchOpen && searchQ){ searchQ = ''; $('#search').value = ''; renderStage(); } renderChrome(); if(searchOpen) $('#search').focus(); },
-    'mode': (v, t) => { topicOpen = false; mode = v; searchQ = ''; $('#search').value = ''; if(v !== 'exam'){ validCat(); rebuild(); } render(); },
+    'mode': (v, t) => { topicOpen = false; mode = v; searchQ = ''; $('#search').value = ''; if(v !== 'exam' && v !== 'photos'){ validCat(); rebuild(); } render(); },
+    'photo': (v, t) => { const [id, m] = v.split('|'); mode = m; groupId = 'pictures'; catId = id; topicOpen = false; searchQ = ''; $('#search').value = ''; validCat(); rebuild(); render(); },
     'grp': (v, t) => { if(v === 'all') topicOpen = false; groupId = v; catId = 'all'; searchQ = ''; $('#search').value = ''; rebuild(); render(); },
     'cat': (v, t) => { topicOpen = false; catId = v; searchQ = ''; $('#search').value = ''; rebuild(); render(); },
     'week': () => { weekOpen = !weekOpen; renderChrome(); },
