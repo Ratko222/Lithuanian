@@ -1077,7 +1077,7 @@ Promise.all(['data.json', 'grammar.json', 'forms.json'].map(f => fetch(f).then(r
 
 /* Anonymous visit/install counting (GoatCounter). Set GC_CODE to your site code to turn it on; leave '' to send nothing. */
 (function(){
-  const GC_CODE = '';
+  const GC_CODE = 'lithuanian';
   if(!GC_CODE || !/^https?:$/.test(location.protocol)) return;
   const note = document.getElementById('au-stats'); if(note) note.hidden = false;
   const sc = document.createElement('script');

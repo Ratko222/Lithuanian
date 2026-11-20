@@ -19,7 +19,7 @@ then open http://localhost:8000. Any static host works (GitHub Pages, Netlify, .
 
 ## Visit and install counts
 
-Counting uses GoatCounter and is off until `GC_CODE` is set at the bottom of `app.js`.
+Counting uses GoatCounter and is on (`GC_CODE = lithuanian` at the bottom of `app.js`).
 Intended account: `lithuanian` (dashboard: https://lithuanian.goatcounter.com), site domain `ratko222.github.io`.
 Events: page visits, `app-installed` (Android Chrome installs only), `opened-as-app`.
 To check the numbers, open the dashboard while signed in (the password is the owner's).
