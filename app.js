@@ -1044,3 +1044,29 @@ Promise.all(['data.json', 'grammar.json', 'forms.json'].map(f => fetch(f).then(r
     box.innerHTML = '<h2>The app could not load its data</h2><p>This page needs to be served from a web server, because browsers block loading data files when you open <code>index.html</code> straight from disk.</p><p>Run <code>python3 -m http.server</code> in this folder and open <code>http://localhost:8000</code>, or open <code>lithuanian-flashcards.html</code>, which works without a server.</p>';
     document.body.prepend(box);
   });
+
+/* Add-to-home-screen helper: one tap on Android, a two-step hint on iPhone */
+(function(){
+  const box = document.getElementById('install'); if(!box) return;
+  if(!/^https?:$/.test(location.protocol)) return;
+  const standalone = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone;
+  const KEY = 'lt_install_dismissed';
+  const dismissed = () => { try{ return localStorage.getItem(KEY) === '1'; }catch(e){ return false; } };
+  let deferred = null;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  function show(){
+    if(standalone() || dismissed()){ box.innerHTML = ''; return; }
+    if(deferred){
+      box.innerHTML = '<div class="installbar"><span>Install this app on your phone</span><button type="button" class="btn green" id="inst-go">Install</button><button type="button" class="linkbtn" id="inst-x">Not now</button></div>';
+    }else if(ios){
+      box.innerHTML = '<div class="installbar"><span>To install: tap <b>Share</b> <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><path d="M12 15V3M8 7l4-4 4 4M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg>, then <b>Add to Home Screen</b></span><button type="button" class="linkbtn" id="inst-x">Got it</button></div>';
+    }else box.innerHTML = '';
+  }
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; show(); });
+  window.addEventListener('appinstalled', () => { deferred = null; box.innerHTML = ''; });
+  box.addEventListener('click', e => {
+    if(e.target.id === 'inst-go' && deferred){ deferred.prompt(); deferred.userChoice.finally(() => { deferred = null; box.innerHTML = ''; }); }
+    if(e.target.id === 'inst-x'){ try{ localStorage.setItem(KEY, '1'); }catch(err){} box.innerHTML = ''; }
+  });
+  show();
+})();

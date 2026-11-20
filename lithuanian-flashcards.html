@@ -296,6 +296,9 @@ footer a,footer .linkbtn{color:var(--soft)}
 }
 @media (min-width:521px){.toolbar .tabs{display:flex;width:100%}.toolbar .tabs button{flex:1 1 auto;padding:9px 10px}}
 @media (min-width:521px) and (max-width:960px){.toolbar .tabs{display:grid;grid-template-columns:repeat(7,1fr);overflow:visible}.tabs .lg{display:none}.tabs .sh{display:inline}.toolbar .tabs button{padding:9px 2px;text-align:center}}
+
+.installbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:10px 14px;margin:0 0 10px;border:1px solid var(--forest);border-radius:14px;background:var(--raised);font-size:14px}
+.installbar span{flex:1 1 200px}
 </style>
 </head>
 <body>
@@ -327,6 +330,7 @@ footer a,footer .linkbtn{color:var(--soft)}
     <div><h1>Lietuvių kalba</h1><p>Beginner vocabulary, learned one card at a time.</p></div>
     <div class="stat"><b id="stat-n" class="serif"></b><span id="stat-c"></span></div>
   </header>
+  <div id="install"></div>
   <div id="offer"></div>
   <div class="goal" id="goal"></div>
   <div class="toolbar"><nav class="tabs" id="tabs"></nav></div>
