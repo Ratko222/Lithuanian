@@ -316,6 +316,18 @@ footer a,footer .linkbtn{color:var(--soft)}
 .ex-report td{padding:5px 0;border-bottom:1px solid var(--line);vertical-align:top}
 .ex-report td:last-child{text-align:right;padding-left:12px}
 .rp-meta{margin:0;color:var(--soft);font-size:14px}.rp-text{white-space:pre-wrap;font-size:14px;margin:0}.rp-note{color:var(--soft);font-size:12.5px;margin-top:16px}
-@media print{body *{visibility:hidden}.ex-report,.ex-report *{visibility:visible}.ex-report{position:absolute;left:0;top:0;width:100%;border:0;background:#fff;color:#000}}
 .ex-report .rp-sec{font-weight:700;background:var(--paper);padding:5px 6px}.ex-report .rp-sub{color:var(--soft);font-size:12.5px}
 .ex-report .rp-n{color:var(--red,#b3261e)}
+
+.ex-report .rp-teacher{border:1px solid var(--line);min-height:110px;border-radius:8px}
+@media print{
+  *:not(:has(.ex-report)):not(.ex-report):not(.ex-report *){display:none !important}
+  html,body{background:#fff !important;color:#000 !important}
+  .ex-report{border:0 !important;background:#fff !important;color:#000 !important;padding:0 !important;font-size:12px;margin:0}
+  .ex-report h2{color:#000}
+  .ex-report h3,.ex-report h4{break-after:avoid}
+  .ex-report tr{break-inside:avoid}
+  .ex-report .rp-teacher{min-height:130px;border:1px solid #888}
+  @page{margin:18mm 14mm 16mm;@bottom-right{content:counter(page) " / " counter(pages);font-size:10px;color:#666}}
+}
+.ex-report td.rp-sec{text-align:left}

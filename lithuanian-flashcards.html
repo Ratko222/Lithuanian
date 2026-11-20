@@ -323,9 +323,21 @@ footer a,footer .linkbtn{color:var(--soft)}
 .ex-report td{padding:5px 0;border-bottom:1px solid var(--line);vertical-align:top}
 .ex-report td:last-child{text-align:right;padding-left:12px}
 .rp-meta{margin:0;color:var(--soft);font-size:14px}.rp-text{white-space:pre-wrap;font-size:14px;margin:0}.rp-note{color:var(--soft);font-size:12.5px;margin-top:16px}
-@media print{body *{visibility:hidden}.ex-report,.ex-report *{visibility:visible}.ex-report{position:absolute;left:0;top:0;width:100%;border:0;background:#fff;color:#000}}
 .ex-report .rp-sec{font-weight:700;background:var(--paper);padding:5px 6px}.ex-report .rp-sub{color:var(--soft);font-size:12.5px}
 .ex-report .rp-n{color:var(--red,#b3261e)}
+
+.ex-report .rp-teacher{border:1px solid var(--line);min-height:110px;border-radius:8px}
+@media print{
+  *:not(:has(.ex-report)):not(.ex-report):not(.ex-report *){display:none !important}
+  html,body{background:#fff !important;color:#000 !important}
+  .ex-report{border:0 !important;background:#fff !important;color:#000 !important;padding:0 !important;font-size:12px;margin:0}
+  .ex-report h2{color:#000}
+  .ex-report h3,.ex-report h4{break-after:avoid}
+  .ex-report tr{break-inside:avoid}
+  .ex-report .rp-teacher{min-height:130px;border:1px solid #888}
+  @page{margin:18mm 14mm 16mm;@bottom-right{content:counter(page) " / " counter(pages);font-size:10px;color:#666}}
+}
+.ex-report td.rp-sec{text-align:left}
 </style>
 </head>
 <body>
@@ -386,8 +398,8 @@ footer a,footer .linkbtn{color:var(--soft)}
 function initExam(ctx){
   const {esc, speak, hasTTS} = ctx;
   const KEY = 'lt_exam_v1';
-  let saved = {best: {}, scripts: {}, mocks: [], name: '', runs: {}, last: {}, qa: {}, done: {}, mistakes: {}, qaMiss: {}};
-  try{ const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if(s && typeof s === 'object'){ saved.best = s.best || {}; saved.scripts = s.scripts || {}; saved.mocks = Array.isArray(s.mocks) ? s.mocks.slice(-10) : []; ['runs','last','qa','done','mistakes','qaMiss'].forEach(k => { if(s[k] && typeof s[k] === 'object') saved[k] = s[k]; }); if(typeof s.name === 'string') saved.name = s.name; } }catch(e){}
+  let saved = {best: {}, scripts: {}, mocks: [], name: '', qTeacher: '', runs: {}, last: {}, qa: {}, done: {}, mistakes: {}, qaMiss: {}};
+  try{ const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if(s && typeof s === 'object'){ saved.best = s.best || {}; saved.scripts = s.scripts || {}; saved.mocks = Array.isArray(s.mocks) ? s.mocks.slice(-10) : []; ['runs','last','qa','done','mistakes','qaMiss'].forEach(k => { if(s[k] && typeof s[k] === 'object') saved[k] = s[k]; }); if(typeof s.name === 'string') saved.name = s.name; if(typeof s.qTeacher === 'string') saved.qTeacher = s.qTeacher; } }catch(e){}
   const persist = () => { try{ localStorage.setItem(KEY, JSON.stringify(saved)); }catch(e){} };
 
   /* ---------- helpers ---------- */
@@ -660,7 +672,7 @@ function initExam(ctx){
     const scripts = ['intro', 'family'].map(id => ({title: SCRIPTS[id].title, text: saved.scripts[id] != null && saved.scripts[id].trim() && saved.scripts[id] !== SCRIPTS[id].starter ? saved.scripts[id].trim() : ''}));
     const mistakes = Object.keys(saved.mistakes).map(k => saved.mistakes[k]).sort((a, b) => a.sec.localeCompare(b.sec) || b.at - a.at);
     const qaMiss = Object.keys(saved.qaMiss).filter(q => QA.some(x => x[0] === q));
-    return {mistakes, qaMiss, name: (saved.name || '').trim(), date: fmtDate(Date.now()), written, mocks, parts, bestMock: saved.best.mock, qaDone, qaTotal: QA.length, dl, pics, scripts};
+    return {qTeacher: (saved.qTeacher || '').trim(), mistakes, qaMiss, name: (saved.name || '').trim(), date: fmtDate(Date.now()), written, mocks, parts, bestMock: saved.best.mock, qaDone, qaTotal: QA.length, dl, pics, scripts};
   }
   const todoCount = r => r.written.filter(w => w.best == null).length + (r.mocks.length ? 0 : 1) + r.dl.filter(d => !d.done).length + r.pics.filter(p => !p.done).length + r.scripts.filter(x => !x.text).length;
   function reportText(r){
@@ -685,8 +697,11 @@ function initExam(ctx){
     r.dl.forEach(d => L.push('- ' + (d.done ? '' : tn()) + 'Dialogue "' + d.title + '": ' + (d.done ? 'completed' : 'not done yet')));
     r.pics.forEach(p => L.push('- ' + (p.done ? '' : tn()) + 'Picture "' + p.title + '": ' + (p.done ? 'described and checked' : 'not done yet')));
     r.scripts.forEach(sc => { L.push(''); L.push((sc.text ? '' : tn()) + sc.title + ' (my own text):'); L.push(sc.text || '(not written yet)'); });
+    if(r.qTeacher){ L.push(''); L.push('MY QUESTIONS FOR THE TEACHER'); L.push(r.qTeacher); }
+    L.push(''); L.push("TEACHER'S COMMENTS:"); L.push(''); L.push('');
     return L.join('\n');
   }
+  const cssStr = t => String(t).replace(/[\\"]/g, '').replace(/[\r\n]+/g, ' ');
   function reportHtml(r){
     let n = 0; const nb = () => `<b class="rp-n">#${++n}</b> `;
     const row = (a, b, todo) => `<tr><td>${todo ? nb() : ''}${esc(a)}</td><td>${esc(b)}</td></tr>`;
@@ -697,11 +712,13 @@ function initExam(ctx){
     const qm = r.qaMiss.length ? `<tr><td colspan="2">Still to practise: ${r.qaMiss.map(esc).join(' · ')}</td></tr>` : '';
     const sp = qm + row('Questions rehearsed', `${r.qaDone} of ${r.qaTotal}`) + r.dl.map(d => row('Dialogue: ' + d.title, d.done ? 'completed' : 'not done yet', !d.done)).join('') + r.pics.map(p => row('Picture: ' + p.title, p.done ? 'described and checked' : 'not done yet', !p.done)).join('');
     const sc = r.scripts.map(x => `<h4>${x.text ? '' : nb()}${esc(x.title)} (my own text)</h4><p class="rp-text">${x.text ? esc(x.text) : '<i>not written yet</i>'}</p>`).join('');
-    return `<h2>Lithuanian exam practice</h2><p class="rp-meta"><b>Student:</b> ${esc(r.name || '(name not entered)')} · <b>Date:</b> ${esc(r.date)} · <b>Still to do:</b> ${todoCount(r)}</p>
+    return `<style>@page{@top-left{content:"${cssStr('Lithuanian exam practice · ' + (r.name || '(name not entered)') + ' · ' + r.date)}";font-size:10px;color:#555}}</style><h2>Lithuanian exam practice</h2><p class="rp-meta"><b>Student:</b> ${esc(r.name || '(name not entered)')} · <b>Date:</b> ${esc(r.date)} · <b>Still to do:</b> ${todoCount(r)}</p>
       <h3>Written part</h3><table>${w}</table>
       <h3>Mock written test${r.bestMock != null ? ` · best ${r.bestMock}%` : ''}</h3><table>${m}</table>
       <h3>Mistakes to review (${r.mistakes.length})</h3><table>${mi}</table>
       <h3>Speaking part</h3><table>${sp}</table>${sc}
+      ${r.qTeacher ? `<h3>My questions for the teacher</h3><p class="rp-text">${esc(r.qTeacher)}</p>` : ''}
+      <h3>Teacher’s comments</h3><div class="rp-teacher"></div>
       <p class="rp-note">Speaking is self-assessed because the app cannot hear speech.</p>`;
   }
   function reportViewHtml(){
@@ -711,13 +728,15 @@ function initExam(ctx){
       <p class="ex-p">Add your name, then send it to your teacher. Everything comes from what you practised on this device.</p>
       <label class="ex-p" for="exname"><b>Your name</b></label>
       <input id="exname" class="ex-in" type="text" autocomplete="name" placeholder="Name and surname" value="${esc(saved.name)}">
+      <label class="ex-p" for="exq"><b>Questions for your teacher</b> (optional)</label>
+      <textarea id="exq" class="ex-area" rows="3" placeholder="Anything you want to ask or are unsure about">${esc(saved.qTeacher)}</textarea>
       <div class="ex-actions">${canShare ? '<button type="button" class="btn green" data-ex="rshare">Share…</button>' : ''}<button type="button" class="btn ${canShare ? '' : 'green'}" data-ex="rcopy">Copy as text</button><button type="button" class="btn" data-ex="rdl">Download page</button><button type="button" class="btn" data-ex="rprint">Print / save PDF</button><button type="button" class="linkbtn" data-ex="clearmist">Clear mistakes list</button></div>
       <div id="exrnote" class="ex-note" role="status" hidden></div>
       <div class="ex-report" id="exreport">${reportHtml(r)}</div></div>`;
   }
   const rnote = msg => { const n = root.querySelector('#exrnote'); if(n){ n.textContent = msg; n.hidden = false; } };
   function reportFileHtml(r){
-    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lithuanian exam practice – ${esc(r.name || 'report')}</title><style>body{font:16px/1.5 system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 16px;color:#222}h2{margin:0 0 4px}h3{margin:22px 0 6px;border-bottom:1px solid #ccc;padding-bottom:4px}h4{margin:16px 0 4px}table{border-collapse:collapse;width:100%}td{padding:5px 8px;border-bottom:1px solid #eee;vertical-align:top}td:last-child{text-align:right}.rp-text{white-space:pre-wrap}.rp-n{color:#b00020}.rp-sec{font-weight:700;background:#f4f4f4}.rp-sub{color:#777;font-size:13px}.rp-note{color:#666;font-size:13px;margin-top:22px}</style></head><body>${reportHtml(r)}</body></html>`;
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lithuanian exam practice – ${esc(r.name || 'report')}</title><style>body{font:16px/1.5 system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 16px;color:#222}h2{margin:0 0 4px}h3{margin:22px 0 6px;border-bottom:1px solid #ccc;padding-bottom:4px}h4{margin:16px 0 4px}table{border-collapse:collapse;width:100%}td{padding:5px 8px;border-bottom:1px solid #eee;vertical-align:top}td:last-child{text-align:right}.rp-text{white-space:pre-wrap}.rp-n{color:#b00020}.rp-teacher{border:1px solid #999;min-height:130px;border-radius:4px}h3,h4{break-after:avoid}tr{break-inside:avoid}@page{margin:18mm 14mm 16mm;@bottom-right{content:counter(page) ' / ' counter(pages);font-size:10px;color:#666}}.rp-sec{font-weight:700;background:#f4f4f4}.rp-sub{color:#777;font-size:13px}.rp-note{color:#666;font-size:13px;margin-top:22px}</style></head><body>${reportHtml(r)}</body></html>`;
   }
   async function reportShare(){
     const r = reportData(), text = reportText(r), name = 'lithuanian-report-' + r.date + '.html';
@@ -990,6 +1009,7 @@ function initExam(ctx){
     });
     root.addEventListener('input', e => {
       if(e.target.id === 'exname'){ saved.name = e.target.value; persist(); const el = root.querySelector('#exreport'); if(el) el.innerHTML = reportHtml(reportData()); return; }
+      if(e.target.id === 'exq'){ saved.qTeacher = e.target.value; persist(); const el = root.querySelector('#exreport'); if(el) el.innerHTML = reportHtml(reportData()); return; }
       if(e.target.id === 'exscript'){ const k = e.target.dataset.key || (root.dataset.script); saved.scripts[k] = e.target.value; persist(); }
     });
   }
