@@ -398,6 +398,7 @@ body.has-install{padding-bottom:120px}
    initExam(ctx) returns {mount(stageElement)}. It keeps its own state and storage key. */
 function initExam(ctx){
   const {esc, speak, hasTTS} = ctx;
+  const SHOW_REPORT = false; // set to true to show the report card button again
   const LEGACY_KEY = 'lt_exam_v1';
   const keyFor = () => 'lt_exam_v2_' + ((ctx.user && ctx.user()) || 'guest');
   const blankSaved = () => ({best: {}, scripts: {}, mocks: [], name: '', qTeacher: '', runs: {}, last: {}, qa: {}, done: {}, mistakes: {}, qaMiss: {}});
@@ -681,7 +682,7 @@ function initExam(ctx){
       <h2 class="serif ex-h">Exam preparation</h2>
       <p class="ex-p">Written part first, then the speaking part. Typing without the Lithuanian letters (ą č ę ė į š ų ū ž) counts as half a point in the mock test, so practise the letters.</p>
       <div class="ex-mock"><div><b>Mock written test</b><span>30 questions across all six topics, answer shown after each one${last ? ` · last ${last.score}/${last.total}` : ''}${saved.best.mock != null ? ` · best ${saved.best.mock}%` : ''}</span></div><button type="button" class="btn green" data-ex="mock">Start mock test</button></div>
-      <div class="ex-mock"><div><b>Report card for my teacher</b><span>Scores, mock results and speaking progress in one page you can send</span></div><button type="button" class="btn" data-ex="report">Make report</button></div>
+      ${SHOW_REPORT ? `<div class="ex-mock"><div><b>Report card for my teacher</b><span>Scores, mock results and speaking progress in one page you can send</span></div><button type="button" class="btn" data-ex="report">Make report</button></div>` : ''}
       <h3 class="ex-h3">✍️ Written part</h3><div class="ex-grid">${wr}</div>
       <h3 class="ex-h3">🗣️ Speaking part</h3>
       <p class="ex-p">The app cannot hear you, so say every answer out loud, then check it against the model. Use the speaker buttons to hear how it sounds.</p>
