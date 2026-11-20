@@ -1052,7 +1052,9 @@ Promise.all(['data.json', 'grammar.json', 'forms.json'].map(f => fetch(f).then(r
   const standalone = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone;
   const KEY = 'lt_install_dismissed';
   const dismissed = () => { try{ return localStorage.getItem(KEY) === '1'; }catch(e){ return false; } };
-  let deferred = null;
+  let deferred = null, late = false;
+  const android = /android/i.test(navigator.userAgent);
+  setTimeout(() => { late = true; show(); }, 3000);
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   function show(){
     if(standalone() || dismissed()){ box.innerHTML = ''; return; }
@@ -1060,6 +1062,8 @@ Promise.all(['data.json', 'grammar.json', 'forms.json'].map(f => fetch(f).then(r
       box.innerHTML = '<div class="installbar"><span>Install this app on your phone</span><button type="button" class="btn green" id="inst-go">Install</button><button type="button" class="linkbtn" id="inst-x">Not now</button></div>';
     }else if(ios){
       box.innerHTML = '<div class="installbar"><span>To install: tap <b>Share</b> <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><path d="M12 15V3M8 7l4-4 4 4M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg>, then <b>Add to Home Screen</b></span><button type="button" class="linkbtn" id="inst-x">Got it</button></div>';
+    }else if(android && late){
+      box.innerHTML = '<div class="installbar"><span>To install: open the browser menu <b>\u22ee</b>, then tap <b>Install app</b> or <b>Add to Home screen</b></span><button type="button" class="linkbtn" id="inst-x">Got it</button></div>';
     }else box.innerHTML = '';
   }
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; show(); });

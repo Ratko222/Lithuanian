@@ -292,3 +292,7 @@ footer a,footer .linkbtn{color:var(--soft)}
 
 .installbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:10px 14px;margin:0 0 10px;border:1px solid var(--forest);border-radius:14px;background:var(--raised);font-size:14px}
 .installbar span{flex:1 1 200px}
+#install{max-width:960px;margin:0 auto;padding:10px 16px 0}
+#install:empty{display:none}
+#install{position:fixed;left:0;right:0;bottom:0;z-index:60;max-width:none;padding:0 12px calc(12px + env(safe-area-inset-bottom))}
+#install .installbar{margin:0 auto;max-width:520px;background:var(--raised);box-shadow:0 6px 24px rgba(0,0,0,.18)}
