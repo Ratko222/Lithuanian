@@ -331,3 +331,4 @@ footer a,footer .linkbtn{color:var(--soft)}
   @page{margin:18mm 14mm 16mm;@bottom-right{content:counter(page) " / " counter(pages);font-size:10px;color:#666}}
 }
 .ex-report td.rp-sec{text-align:left}
+body.has-install{padding-bottom:120px}

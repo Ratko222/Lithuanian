@@ -65,7 +65,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
       if(!ltVoice && !voiceWarned){ voiceWarned = true; const v = $('#voicenote'); if(v) v.textContent = 'No Lithuanian voice was found on this device, so audio may not sound right.'; }
     }catch(e){}
   }
-  const EXAM = initExam({words: WORDS, esc, speak, hasTTS, pictures: ['iylt', 'natscene'].map(id => { const c = CATS.find(x => x.id === id); return c && c.image ? {id, title: id === 'iylt' ? 'Family at home' : 'Nature scene', img: c.image, sentences: (c.full || []).map(f => ({lt: f.lt, en: f.en}))} : null; }).filter(Boolean)});
+  const EXAM = initExam({user: () => user, words: WORDS, esc, speak, hasTTS, pictures: ['iylt', 'natscene'].map(id => { const c = CATS.find(x => x.id === id); return c && c.image ? {id, title: id === 'iylt' ? 'Family at home' : 'Nature scene', img: c.image, sentences: (c.full || []).map(f => ({lt: f.lt, en: f.en}))} : null; }).filter(Boolean)});
   const SPK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4.03v8.05A4.5 4.5 0 0 0 16.5 12zM14 3.23v2.06a7 7 0 0 1 0 13.42v2.06a9 9 0 0 0 0-17.54z"/></svg>';
   const spk = (t, lg) => hasTTS ? `<button type="button" class="spk ${lg?'lg':''}" data-act="speak" data-t="${esc(t)}" aria-label="Play audio">${SPK_ICON}</button>` : '';
 
@@ -84,7 +84,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
       <div class="sub2">Last 7 days: <b>${total}</b> answers on <b>${active}</b> of 7 days. Streak: <b>${progress.streak.n}</b>. Words known: <b>${known}</b>. Due for review: <b>${dueKeys().length}</b>.</div></div>`;
   }
 
-  let user = null, authMode = 'login';
+  let user = null, authMode = 'login', pendingExam = null;
   const blank = () => ({flash:{}, sent:{}, full:{}, listen:{}, gram:{}, match:{}, scramble:{}, kseen:{}, miss:{}, srs:{}, hist:{}, daily:{date:'', count:0}, streak:{n:0, last:''}, goal:20, updatedAt:0});
   let progress = blank();
   const progKey = () => 'lt_prog_' + (user || 'guest');
@@ -214,10 +214,10 @@ async function startApp(CATS, GRAMMAR, FORMS){
     }
   }
   function enter(key){
-    user = key;
+    user = key; EXAM.reset();
     if(key) store.set('lt_remember', key);
     $('#auth').hidden = true; $('#app').hidden = false;
-    loadProg(); pendingBackup = null; guestOffer = null; restartAsk = false;
+    loadProg(); pendingBackup = null; pendingExam = null; backupOpen = false; weekOpen = false; resetAsk = false; guestOffer = null; restartAsk = false;
     if(key){
       let g = null;
       try{ g = fixProg(JSON.parse(store.get('lt_prog_guest') || 'null')); }catch(e){}
@@ -227,7 +227,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
     rebuild(); render();
   }
   function logout(){
-    store.del('lt_remember'); user = null; stopTimer();
+    store.del('lt_remember'); user = null; EXAM.reset(); stopTimer(); resetAsk = false; backupOpen = false; pendingBackup = null; pendingExam = null; weekOpen = false;
     $('#app').hidden = true; $('#auth').hidden = false;
     $('#au-pass').value = ''; setAuthMode('login');
   }
@@ -347,8 +347,10 @@ async function startApp(CATS, GRAMMAR, FORMS){
     $('#search').hidden = !(searchOpen || searchQ);
     $('#searchbtn').setAttribute('aria-expanded', String(!$('#search').hidden));
     $('#topicbtn').setAttribute('aria-expanded', String(!inExam && topicOpen));
+    $('.stat').hidden = inExam;
     if(inExam){
       $('#tabs').innerHTML = Object.keys(MODES).map(m => `<button type="button" class="${m===mode?'on':''}" data-act="mode" data-v="${m}"><span class="lg">${MODES[m]}</span><span class="sh">${SHORT[m]}</span></button>`).join('');
+      renderFooter();
       return;
     }
     validCat();
@@ -403,14 +405,17 @@ async function startApp(CATS, GRAMMAR, FORMS){
     $('#stat-n').textContent = n; $('#stat-c').textContent = c; $('#barfill').style.width = pct + '%';
     const d = today(), cnt0 = progress.daily.date === d ? progress.daily.count : 0, met = cnt0 >= progress.goal, st = streakNow();
     $('#goal').innerHTML = `<span>Today <b>${cnt0}</b>/${esc(String(progress.goal))}</span><span class="gbar ${met?'met':''}" role="progressbar" aria-valuemin="0" aria-valuemax="${progress.goal}" aria-valuenow="${Math.min(cnt0, progress.goal)}"><i style="width:${Math.min(100, cnt0 / progress.goal * 100)}%"></i></span>${st ? `<span><b>${st}</b>-day streak</span>` : ''}<button type="button" class="linkbtn" data-act="goal">Edit goal</button>`;
+    renderFooter();
+  }
+  function renderFooter(){
     renderOffer();
     $('#sync').innerHTML = (user ? `Signed in as ${esc(user)} · <button type="button" class="linkbtn" data-act="logout">Log out</button>`
       : `Playing as guest (progress is kept on this device) · <button type="button" class="linkbtn" data-act="exit">Log in or sign up</button>`)
       + ` · Saved on this device · Pronunciation guide: capitals mark the stressed syllable; use the audio button as the reference.`;
     $('#prefs').innerHTML = (hasTTS ? `<div class="prefrow"><label><input type="checkbox" id="auto" ${prefs.auto?'checked':''}> Play audio automatically on flashcards</label></div>` : '')
       + `<div class="prefrow"><label>Theme <select id="theme"><option value="auto" ${prefs.theme==='auto'?'selected':''}>Match device</option><option value="light" ${prefs.theme==='light'?'selected':''}>Light</option><option value="dark" ${prefs.theme==='dark'?'selected':''}>Dark</option></select></label> · <button type="button" class="linkbtn" data-act="week">${weekOpen ? 'Hide weekly summary' : 'Weekly summary'}</button></div>` + (weekOpen ? weekPanel() : '');
-    const label = {flash:'flashcard', sent:'sentence', full:'full-sentence', listen:'listening', match:'speed-match', scramble:'word-scramble', gram:'grammar'}[mode];
-    $('#reset').innerHTML = resetAsk
+    const label = {exam:'exam practice', flash:'flashcard', sent:'sentence', full:'full-sentence', listen:'listening', match:'speed-match', scramble:'word-scramble', gram:'grammar'}[mode];
+    $('#reset').innerHTML = mode === 'photos' ? '' : resetAsk
       ? `<div class="rrow"><span>Wipe all ${label} progress?</span><button type="button" class="btn red" data-act="resetyes">Yes, reset</button><button type="button" class="btn green" data-act="resetno">Cancel</button></div>`
       : `<button type="button" class="linkbtn" data-act="resetask">Reset ${label} progress</button>`;
     $('#backup').innerHTML = backupOpen
@@ -909,19 +914,20 @@ async function startApp(CATS, GRAMMAR, FORMS){
   }
 
   const backupMessage = s => { const m = $('#bkmsg'); if(m) m.textContent = s; };
-  function showBackupText(){ const t = $('#bk'); if(!t) return; t.value = JSON.stringify({app:'lietuviu-kalba', version:1, profile:user || 'guest', progress:progress}); t.focus(); t.select(); backupMessage('Copy this text and keep it somewhere safe.'); }
+  function showBackupText(){ const t = $('#bk'); if(!t) return; t.value = JSON.stringify({app:'lietuviu-kalba', version:1, profile:user || 'guest', progress:progress, exam:EXAM.exportData()}); t.focus(); t.select(); backupMessage('Copy this text and keep it somewhere safe.'); }
   function applyBackup(text){
     let d;
     try{ d = JSON.parse(text); }catch(e){ return 'That isn\u2019t a valid backup. Use a file saved from this app, or paste the whole backup text.'; }
     const p = d && d.progress ? d.progress : d;
     if(!p || typeof p !== 'object' || !p.flash || !p.sent) return 'That doesn\u2019t look like a progress backup from this app.';
-    pendingBackup = fixProg(p);
+    pendingBackup = fixProg(p); pendingExam = (d && d.exam && typeof d.exam === 'object') ? d.exam : null;
     renderChrome();
     return 'Check the comparison below, then choose Replace or Cancel.';
   }
   function confirmBackup(){
     if(!pendingBackup) return;
     progress = pendingBackup; pendingBackup = null;
+    if(pendingExam){ EXAM.importData(pendingExam); pendingExam = null; }
     save(); activeTask = null; matchGame = null; rebuild(); render();
     backupMessage('Progress loaded: ' + progressSummary(progress) + '.');
   }
@@ -935,7 +941,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
   }
   async function exportProgress(){
     const profile = user || 'guest';
-    const data = JSON.stringify({app:'lietuviu-kalba', version:1, profile, exportedAt:new Date().toISOString(), progress:progress}, null, 1);
+    const data = JSON.stringify({app:'lietuviu-kalba', version:1, profile, exportedAt:new Date().toISOString(), progress:progress, exam:EXAM.exportData()}, null, 1);
     const filename = `lietuviu-kalba-progress-${profile}-${today()}.json`;
     try{
       const url = URL.createObjectURL(new Blob([data], {type:'application/json'})), a = document.createElement('a');
@@ -961,7 +967,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
     'speak': (v, t) => { speak(t.dataset.t); },
     'topic': () => { topicOpen = !topicOpen; renderChrome(); },
     'searchtoggle': () => { searchOpen = !searchOpen; if(!searchOpen && searchQ){ searchQ = ''; $('#search').value = ''; renderStage(); } renderChrome(); if(searchOpen) $('#search').focus(); },
-    'mode': (v, t) => { topicOpen = false; mode = v; searchQ = ''; $('#search').value = ''; if(v !== 'exam' && v !== 'photos'){ validCat(); rebuild(); } render(); },
+    'mode': (v, t) => { topicOpen = false; resetAsk = false; mode = v; searchQ = ''; $('#search').value = ''; if(v !== 'exam' && v !== 'photos'){ validCat(); rebuild(); } render(); },
     'photo': (v, t) => { const [id, m] = v.split('|'); mode = m; groupId = 'pictures'; catId = id; topicOpen = false; searchQ = ''; $('#search').value = ''; validCat(); rebuild(); render(); },
     'grp': (v, t) => { if(v === 'all') topicOpen = false; groupId = v; catId = 'all'; searchQ = ''; $('#search').value = ''; rebuild(); render(); },
     'cat': (v, t) => { topicOpen = false; catId = v; searchQ = ''; $('#search').value = ''; rebuild(); render(); },
@@ -1005,10 +1011,10 @@ async function startApp(CATS, GRAMMAR, FORMS){
     'goal': (v, t) => { const g = [10, 20, 30, 50, 100]; progress.goal = g[(g.indexOf(progress.goal) + 1) % g.length]; awardStreak(); save(); renderChrome(); },
     'resetask': (v, t) => { resetAsk = true; renderChrome(); },
     'resetno': (v, t) => { resetAsk = false; renderChrome(); },
-    'resetyes': (v, t) => { progress[mode] = {}; if(mode === 'flash') progress.miss = {};
+    'resetyes': (v, t) => { if(mode === 'exam'){ EXAM.clearData(); resetAsk = false; render(); return; } if(mode === 'photos'){ resetAsk = false; renderChrome(); return; } progress[mode] = {}; if(mode === 'flash') progress.miss = {};
         resetAsk = false; save(); rebuild(); render(); },
     'bkopen': (v, t) => { backupOpen = true; renderChrome(); },
-    'bkclose': (v, t) => { backupOpen = false; pendingBackup = null; renderChrome(); },
+    'bkclose': (v, t) => { backupOpen = false; pendingBackup = null; pendingExam = null; renderChrome(); },
     'bkshow': (v, t) => { showBackupText(); },
     'bkrestore': (v, t) => { restoreBackupText(); },
     'offeryes': (v, t) => { progress = guestOffer; guestOffer = null; store.del('lt_prog_guest'); save(); rebuild(); render(); },
@@ -1016,7 +1022,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
     'listenanyway': (v, t) => { listenAnyway = true; renderStage(); },
     'wordtap': (v, t) => { if(!activeTask) return; activeTask.gloss = t.dataset.w.toLowerCase(); activeTask.glossShown = t.dataset.w; renderStage(); },
     'bkapply': (v, t) => { confirmBackup(); },
-    'bkcancel': (v, t) => { pendingBackup = null; renderChrome(); backupMessage('Nothing was changed.'); },
+    'bkcancel': (v, t) => { pendingBackup = null; pendingExam = null; renderChrome(); backupMessage('Nothing was changed.'); },
     'bkdl': (v, t) => { exportProgress(); },
     'bkpick': (v, t) => { const f = $('#bkfile'); if(f) f.click(); },
     'logout': (v, t) => { logout(); },
@@ -1083,6 +1089,7 @@ Promise.all(['data.json', 'grammar.json', 'forms.json'].map(f => fetch(f).then(r
     if(e.target.id === 'inst-go' && deferred){ deferred.prompt(); deferred.userChoice.finally(() => { deferred = null; box.innerHTML = ''; }); }
     if(e.target.id === 'inst-x'){ try{ localStorage.setItem(KEY, '1'); }catch(err){} box.innerHTML = ''; }
   });
+  new MutationObserver(() => document.body.classList.toggle('has-install', !!box.firstElementChild)).observe(box, {childList: true});
   show();
 })();
 

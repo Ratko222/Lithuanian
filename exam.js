@@ -2,10 +2,36 @@
    initExam(ctx) returns {mount(stageElement)}. It keeps its own state and storage key. */
 function initExam(ctx){
   const {esc, speak, hasTTS} = ctx;
-  const KEY = 'lt_exam_v1';
-  let saved = {best: {}, scripts: {}, mocks: [], name: '', qTeacher: '', runs: {}, last: {}, qa: {}, done: {}, mistakes: {}, qaMiss: {}};
-  try{ const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if(s && typeof s === 'object'){ saved.best = s.best || {}; saved.scripts = s.scripts || {}; saved.mocks = Array.isArray(s.mocks) ? s.mocks.slice(-10) : []; ['runs','last','qa','done','mistakes','qaMiss'].forEach(k => { if(s[k] && typeof s[k] === 'object') saved[k] = s[k]; }); if(typeof s.name === 'string') saved.name = s.name; if(typeof s.qTeacher === 'string') saved.qTeacher = s.qTeacher; } }catch(e){}
-  const persist = () => { try{ localStorage.setItem(KEY, JSON.stringify(saved)); }catch(e){} };
+  const LEGACY_KEY = 'lt_exam_v1';
+  const keyFor = () => 'lt_exam_v2_' + ((ctx.user && ctx.user()) || 'guest');
+  const blankSaved = () => ({best: {}, scripts: {}, mocks: [], name: '', qTeacher: '', runs: {}, last: {}, qa: {}, done: {}, mistakes: {}, qaMiss: {}});
+  const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
+  const num = (v, lo, hi) => (typeof v === 'number' && isFinite(v)) ? Math.min(hi, Math.max(lo, v)) : null;
+  const str = (v, n) => typeof v === 'string' ? v.slice(0, n) : '';
+  function sanitize(src){
+    const o = blankSaved(); if(!isObj(src)) return o;
+    o.name = str(src.name, 100); o.qTeacher = str(src.qTeacher, 2000);
+    if(isObj(src.best)) Object.keys(src.best).slice(0, 40).forEach(k => { const v = num(src.best[k], 0, 100); if(v != null) o.best[str(k, 30)] = v; });
+    if(isObj(src.scripts)) ['intro', 'family'].forEach(k => { if(typeof src.scripts[k] === 'string') o.scripts[k] = src.scripts[k].slice(0, 5000); });
+    if(Array.isArray(src.mocks)) src.mocks.slice(-10).forEach(m => { if(!isObj(m)) return; const sc = num(m.score, 0, 1000), t = num(m.total, 1, 1000), at = num(m.at, 0, 4e12); if(sc == null || t == null || at == null) return; const e = {score: sc, total: t, at}; if(isObj(m.parts)){ e.parts = {}; Object.keys(m.parts).slice(0, 12).forEach(k => { const a = m.parts[k]; if(Array.isArray(a) && num(a[0], 0, 1000) != null && num(a[1], 0, 1000) != null) e.parts[str(k, 60)] = [a[0], a[1]]; }); } o.mocks.push(e); });
+    if(isObj(src.runs)) Object.keys(src.runs).slice(0, 40).forEach(k => { const v = num(src.runs[k], 0, 100000); if(v != null) o.runs[str(k, 30)] = v; });
+    if(isObj(src.last)) Object.keys(src.last).slice(0, 40).forEach(k => { const l = src.last[k]; if(isObj(l) && num(l.p, 0, 100) != null && num(l.at, 0, 4e12) != null) o.last[str(k, 30)] = {p: l.p, at: l.at}; });
+    [['qa', 400], ['qaMiss', 400], ['done', 80]].forEach(([f, cap]) => { if(isObj(src[f])) Object.keys(src[f]).slice(0, cap).forEach(k => { const v = num(src[f][k], 0, 4e12); if(v != null) o[f][str(k, 200)] = v; }); });
+    if(isObj(src.mistakes)) Object.keys(src.mistakes).slice(0, 150).forEach(k => { const m = src.mistakes[k]; if(isObj(m)) o.mistakes[str(k, 600)] = {sec: str(m.sec, 80), prompt: str(m.prompt, 300), correct: str(m.correct, 200), your: str(m.your, 200), res: m.res === 'near' ? 'near' : 'no', at: num(m.at, 0, 4e12) || 0, n: num(m.n, 1, 1000) || 1}; });
+    return o;
+  }
+  let saved = blankSaved(), loadedFor = null, currentKey = null;
+  function loadFor(k){
+    let raw = null;
+    try{ raw = JSON.parse(localStorage.getItem(k) || 'null'); }catch(e){}
+    if(raw == null && k === 'lt_exam_v2_guest'){
+      // one-time move of data saved before exam practice became per-account; it goes to the guest profile only
+      try{ raw = JSON.parse(localStorage.getItem(LEGACY_KEY) || 'null'); if(raw != null){ localStorage.setItem(k, JSON.stringify(sanitize(raw))); } localStorage.removeItem(LEGACY_KEY); }catch(e){}
+    }
+    saved = sanitize(raw); currentKey = k; loadedFor = k;
+  }
+  const ensure = () => { const k = keyFor(); if(loadedFor !== k) loadFor(k); };
+  const persist = () => { try{ localStorage.setItem(currentKey || keyFor(), JSON.stringify(saved)); }catch(e){} };
 
   /* ---------- helpers ---------- */
   const rnd = n => Math.floor(Math.random() * n);
@@ -240,6 +266,7 @@ function initExam(ctx){
   /* ---------- state ---------- */
   let view = 'home', session = null, dlg = null, qa = null, pic = null;
   let root = null;
+  function resetUi(){ view = 'home'; session = null; dlg = null; qa = null; pic = null; if(root){ delete root.dataset.script; root.innerHTML = ''; } }
 
   const pct = (a, b) => b ? Math.round(100 * a / b) : 0;
   const recordBest = (id, p) => { if(!(saved.best[id] >= p)){ saved.best[id] = p; persist(); } };
@@ -621,7 +648,12 @@ function initExam(ctx){
 
   return {
     _t: {mk, numWords, euroWord, gradeText, norm},
+    reset(){ loadedFor = null; resetUi(); },
+    exportData(){ ensure(); return JSON.parse(JSON.stringify(saved)); },
+    importData(d){ ensure(); saved = sanitize(d); persist(); resetUi(); },
+    clearData(){ ensure(); saved = blankSaved(); persist(); resetUi(); },
     mount(stage){
+      ensure();
       if(root !== stage){ root = stage; wired = false; }
       wire();
       if(view === 'script' && !root.dataset.script) view = 'home';
