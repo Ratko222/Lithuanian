@@ -279,46 +279,47 @@ function initExam(ctx){
     const qaMiss = Object.keys(saved.qaMiss).filter(q => QA.some(x => x[0] === q));
     return {mistakes, qaMiss, name: (saved.name || '').trim(), date: fmtDate(Date.now()), written, mocks, parts, bestMock: saved.best.mock, qaDone, qaTotal: QA.length, dl, pics, scripts};
   }
+  const todoCount = r => r.written.filter(w => w.best == null).length + (r.mocks.length ? 0 : 1) + r.dl.filter(d => !d.done).length + r.pics.filter(p => !p.done).length + r.scripts.filter(x => !x.text).length;
   function reportText(r){
-    const L = [];
+    const L = []; let n = 0; const tn = () => '[#' + (++n) + '] ';
     L.push('Lithuanian exam practice – report card');
     L.push('Student: ' + (r.name || '(name not entered)'));
-    L.push('Date: ' + r.date); L.push('');
+    L.push('Date: ' + r.date); L.push('Still to do: ' + todoCount(r) + ' (numbered #1, #2 … below)'); L.push('');
     L.push('WRITTEN PART (best score per topic)');
-    r.written.forEach(w => L.push('- ' + w.title + ': ' + (w.best != null ? w.best + '% best' + (w.last != null ? ', last ' + w.last + '%' : '') + ', ' + w.runs + ' ' + (w.runs === 1 ? 'practice' : 'practices') : 'not practised yet')));
+    r.written.forEach(w => L.push('- ' + (w.best == null ? tn() : '') + w.title + ': ' + (w.best != null ? w.best + '% best' + (w.last != null ? ', last ' + w.last + '%' : '') + ', ' + w.runs + ' ' + (w.runs === 1 ? 'practice' : 'practices') : 'not practised yet')));
     L.push(''); L.push('MOCK WRITTEN TEST (30 questions)');
     if(r.mocks.length){
       L.push('Best: ' + r.bestMock + '%');
       r.mocks.slice(0, 5).forEach(m => L.push('- ' + fmtDate(m.at) + ': ' + m.score + '/' + m.total + ' (' + pct(m.score, m.total) + '%)'));
       const ks = Object.keys(r.parts); if(ks.length){ L.push('Average by part:'); ks.forEach(k => L.push('  ' + k + ': ' + pct(r.parts[k][0], r.parts[k][1]) + '%')); }
-    }else L.push('Not taken yet.');
+    }else L.push('- ' + tn() + 'Mock written test: not taken yet');
     L.push(''); L.push('MISTAKES TO REVIEW (' + r.mistakes.length + ')');
     if(r.mistakes.length){ let cur = ''; r.mistakes.forEach(m => { if(m.sec !== cur){ cur = m.sec; L.push(cur + ':'); } L.push('- ' + m.prompt + ' | my answer: ' + (m.your || '(none)') + ' | correct: ' + m.correct + (m.n > 1 ? ' | missed ' + m.n + ' times' : '')); }); }
     else L.push('No open mistakes.');
     L.push(''); L.push('SPEAKING PART (self-assessed; the app cannot hear speech)');
     L.push('- Questions rehearsed: ' + r.qaDone + ' of ' + r.qaTotal);
     if(r.qaMiss.length){ L.push('- Still to practise:'); r.qaMiss.forEach(q => L.push('  ' + q)); }
-    r.dl.forEach(d => L.push('- Dialogue "' + d.title + '": ' + (d.done ? 'completed' : 'not done yet')));
-    r.pics.forEach(p => L.push('- Picture "' + p.title + '": ' + (p.done ? 'described and checked' : 'not done yet')));
-    r.scripts.forEach(sc => { L.push(''); L.push(sc.title + ' (my own text):'); L.push(sc.text || '(not written yet)'); });
-    L.push(''); L.push('Content is AI-written and not checked by a native speaker.');
+    r.dl.forEach(d => L.push('- ' + (d.done ? '' : tn()) + 'Dialogue "' + d.title + '": ' + (d.done ? 'completed' : 'not done yet')));
+    r.pics.forEach(p => L.push('- ' + (p.done ? '' : tn()) + 'Picture "' + p.title + '": ' + (p.done ? 'described and checked' : 'not done yet')));
+    r.scripts.forEach(sc => { L.push(''); L.push((sc.text ? '' : tn()) + sc.title + ' (my own text):'); L.push(sc.text || '(not written yet)'); });
     return L.join('\n');
   }
   function reportHtml(r){
-    const row = (a, b) => `<tr><td>${esc(a)}</td><td>${esc(b)}</td></tr>`;
-    const w = r.written.map(x => row(x.title, x.best != null ? `${x.best}% best${x.last != null ? ', last ' + x.last + '%' : ''} · ${x.runs} ${x.runs === 1 ? 'practice' : 'practices'}` : 'not practised yet')).join('');
-    const m = r.mocks.length ? r.mocks.slice(0, 5).map(x => row(fmtDate(x.at), `${x.score}/${x.total} (${pct(x.score, x.total)}%)`)).join('') + Object.keys(r.parts).map(k => row('Average · ' + k, pct(r.parts[k][0], r.parts[k][1]) + '%')).join('') : row('Not taken yet', '');
+    let n = 0; const nb = () => `<b class="rp-n">#${++n}</b> `;
+    const row = (a, b, todo) => `<tr><td>${todo ? nb() : ''}${esc(a)}</td><td>${esc(b)}</td></tr>`;
+    const w = r.written.map(x => row(x.title, x.best != null ? `${x.best}% best${x.last != null ? ', last ' + x.last + '%' : ''} · ${x.runs} ${x.runs === 1 ? 'practice' : 'practices'}` : 'not practised yet', x.best == null)).join('');
+    const m = r.mocks.length ? r.mocks.slice(0, 5).map(x => row(fmtDate(x.at), `${x.score}/${x.total} (${pct(x.score, x.total)}%)`)).join('') + Object.keys(r.parts).map(k => row('Average · ' + k, pct(r.parts[k][0], r.parts[k][1]) + '%')).join('') : row('Mock written test', 'not taken yet', true);
     let cur = '';
     const mi = r.mistakes.length ? r.mistakes.map(m => { const head = m.sec !== cur ? `<tr><td colspan="2" class="rp-sec">${esc(m.sec)}</td></tr>` : ''; cur = m.sec; return head + `<tr><td>${esc(m.prompt)}<br><span class="rp-sub">my answer: ${esc(m.your || '(none)')}${m.n > 1 ? ' · missed ' + m.n + ' times' : ''}</span></td><td><b>${esc(m.correct)}</b></td></tr>`; }).join('') : row('No open mistakes', '');
     const qm = r.qaMiss.length ? `<tr><td colspan="2">Still to practise: ${r.qaMiss.map(esc).join(' · ')}</td></tr>` : '';
-    const sp = qm + row('Questions rehearsed', `${r.qaDone} of ${r.qaTotal}`) + r.dl.map(d => row('Dialogue: ' + d.title, d.done ? 'completed' : 'not done yet')).join('') + r.pics.map(p => row('Picture: ' + p.title, p.done ? 'described and checked' : 'not done yet')).join('');
-    const sc = r.scripts.map(x => `<h4>${esc(x.title)} (my own text)</h4><p class="rp-text">${x.text ? esc(x.text) : '<i>not written yet</i>'}</p>`).join('');
-    return `<h2>Lithuanian exam practice</h2><p class="rp-meta"><b>Student:</b> ${esc(r.name || '(name not entered)')} · <b>Date:</b> ${esc(r.date)}</p>
+    const sp = qm + row('Questions rehearsed', `${r.qaDone} of ${r.qaTotal}`) + r.dl.map(d => row('Dialogue: ' + d.title, d.done ? 'completed' : 'not done yet', !d.done)).join('') + r.pics.map(p => row('Picture: ' + p.title, p.done ? 'described and checked' : 'not done yet', !p.done)).join('');
+    const sc = r.scripts.map(x => `<h4>${x.text ? '' : nb()}${esc(x.title)} (my own text)</h4><p class="rp-text">${x.text ? esc(x.text) : '<i>not written yet</i>'}</p>`).join('');
+    return `<h2>Lithuanian exam practice</h2><p class="rp-meta"><b>Student:</b> ${esc(r.name || '(name not entered)')} · <b>Date:</b> ${esc(r.date)} · <b>Still to do:</b> ${todoCount(r)}</p>
       <h3>Written part</h3><table>${w}</table>
       <h3>Mock written test${r.bestMock != null ? ` · best ${r.bestMock}%` : ''}</h3><table>${m}</table>
       <h3>Mistakes to review (${r.mistakes.length})</h3><table>${mi}</table>
       <h3>Speaking part</h3><table>${sp}</table>${sc}
-      <p class="rp-note">Speaking is self-assessed because the app cannot hear speech. The content is AI-written and has not been checked by a native speaker.</p>`;
+      <p class="rp-note">Speaking is self-assessed because the app cannot hear speech.</p>`;
   }
   function reportViewHtml(){
     const r = reportData();
@@ -333,7 +334,7 @@ function initExam(ctx){
   }
   const rnote = msg => { const n = root.querySelector('#exrnote'); if(n){ n.textContent = msg; n.hidden = false; } };
   function reportFileHtml(r){
-    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lithuanian exam practice – ${esc(r.name || 'report')}</title><style>body{font:16px/1.5 system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 16px;color:#222}h2{margin:0 0 4px}h3{margin:22px 0 6px;border-bottom:1px solid #ccc;padding-bottom:4px}h4{margin:16px 0 4px}table{border-collapse:collapse;width:100%}td{padding:5px 8px;border-bottom:1px solid #eee;vertical-align:top}td:last-child{text-align:right}.rp-text{white-space:pre-wrap}.rp-sec{font-weight:700;background:#f4f4f4}.rp-sub{color:#777;font-size:13px}.rp-note{color:#666;font-size:13px;margin-top:22px}</style></head><body>${reportHtml(r)}</body></html>`;
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lithuanian exam practice – ${esc(r.name || 'report')}</title><style>body{font:16px/1.5 system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 16px;color:#222}h2{margin:0 0 4px}h3{margin:22px 0 6px;border-bottom:1px solid #ccc;padding-bottom:4px}h4{margin:16px 0 4px}table{border-collapse:collapse;width:100%}td{padding:5px 8px;border-bottom:1px solid #eee;vertical-align:top}td:last-child{text-align:right}.rp-text{white-space:pre-wrap}.rp-n{color:#b00020}.rp-sec{font-weight:700;background:#f4f4f4}.rp-sub{color:#777;font-size:13px}.rp-note{color:#666;font-size:13px;margin-top:22px}</style></head><body>${reportHtml(r)}</body></html>`;
   }
   async function reportShare(){
     const r = reportData(), text = reportText(r), name = 'lithuanian-report-' + r.date + '.html';
