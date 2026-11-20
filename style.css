@@ -317,3 +317,4 @@ footer a,footer .linkbtn{color:var(--soft)}
 .ex-report td:last-child{text-align:right;padding-left:12px}
 .rp-meta{margin:0;color:var(--soft);font-size:14px}.rp-text{white-space:pre-wrap;font-size:14px;margin:0}.rp-note{color:var(--soft);font-size:12.5px;margin-top:16px}
 @media print{body *{visibility:hidden}.ex-report,.ex-report *{visibility:visible}.ex-report{position:absolute;left:0;top:0;width:100%;border:0;background:#fff;color:#000}}
+.ex-report .rp-sec{font-weight:700;background:var(--paper);padding:5px 6px}.ex-report .rp-sub{color:var(--soft);font-size:12.5px}

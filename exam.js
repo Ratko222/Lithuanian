@@ -3,8 +3,8 @@
 function initExam(ctx){
   const {esc, speak, hasTTS} = ctx;
   const KEY = 'lt_exam_v1';
-  let saved = {best: {}, scripts: {}, mocks: [], name: '', runs: {}, last: {}, qa: {}, done: {}};
-  try{ const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if(s && typeof s === 'object'){ saved.best = s.best || {}; saved.scripts = s.scripts || {}; saved.mocks = Array.isArray(s.mocks) ? s.mocks.slice(-10) : []; ['runs','last','qa','done'].forEach(k => { if(s[k] && typeof s[k] === 'object') saved[k] = s[k]; }); if(typeof s.name === 'string') saved.name = s.name; } }catch(e){}
+  let saved = {best: {}, scripts: {}, mocks: [], name: '', runs: {}, last: {}, qa: {}, done: {}, mistakes: {}, qaMiss: {}};
+  try{ const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if(s && typeof s === 'object'){ saved.best = s.best || {}; saved.scripts = s.scripts || {}; saved.mocks = Array.isArray(s.mocks) ? s.mocks.slice(-10) : []; ['runs','last','qa','done','mistakes','qaMiss'].forEach(k => { if(s[k] && typeof s[k] === 'object') saved[k] = s[k]; }); if(typeof s.name === 'string') saved.name = s.name; } }catch(e){}
   const persist = () => { try{ localStorage.setItem(KEY, JSON.stringify(saved)); }catch(e){} };
 
   /* ---------- helpers ---------- */
@@ -275,7 +275,9 @@ function initExam(ctx){
     const dl = DIALOGS.map(d => ({title: d.title, done: !!saved.done['dlg:' + d.title]}));
     const pics = PICTURES.map(p => ({title: p.title, done: !!saved.done['pic:' + p.title]}));
     const scripts = ['intro', 'family'].map(id => ({title: SCRIPTS[id].title, text: saved.scripts[id] != null && saved.scripts[id].trim() && saved.scripts[id] !== SCRIPTS[id].starter ? saved.scripts[id].trim() : ''}));
-    return {name: (saved.name || '').trim(), date: fmtDate(Date.now()), written, mocks, parts, bestMock: saved.best.mock, qaDone, qaTotal: QA.length, dl, pics, scripts};
+    const mistakes = Object.keys(saved.mistakes).map(k => saved.mistakes[k]).sort((a, b) => a.sec.localeCompare(b.sec) || b.at - a.at);
+    const qaMiss = Object.keys(saved.qaMiss).filter(q => QA.some(x => x[0] === q));
+    return {mistakes, qaMiss, name: (saved.name || '').trim(), date: fmtDate(Date.now()), written, mocks, parts, bestMock: saved.best.mock, qaDone, qaTotal: QA.length, dl, pics, scripts};
   }
   function reportText(r){
     const L = [];
@@ -290,8 +292,12 @@ function initExam(ctx){
       r.mocks.slice(0, 5).forEach(m => L.push('- ' + fmtDate(m.at) + ': ' + m.score + '/' + m.total + ' (' + pct(m.score, m.total) + '%)'));
       const ks = Object.keys(r.parts); if(ks.length){ L.push('Average by part:'); ks.forEach(k => L.push('  ' + k + ': ' + pct(r.parts[k][0], r.parts[k][1]) + '%')); }
     }else L.push('Not taken yet.');
+    L.push(''); L.push('MISTAKES TO REVIEW (' + r.mistakes.length + ')');
+    if(r.mistakes.length){ let cur = ''; r.mistakes.forEach(m => { if(m.sec !== cur){ cur = m.sec; L.push(cur + ':'); } L.push('- ' + m.prompt + ' | my answer: ' + (m.your || '(none)') + ' | correct: ' + m.correct + (m.n > 1 ? ' | missed ' + m.n + ' times' : '')); }); }
+    else L.push('No open mistakes.');
     L.push(''); L.push('SPEAKING PART (self-assessed; the app cannot hear speech)');
     L.push('- Questions rehearsed: ' + r.qaDone + ' of ' + r.qaTotal);
+    if(r.qaMiss.length){ L.push('- Still to practise:'); r.qaMiss.forEach(q => L.push('  ' + q)); }
     r.dl.forEach(d => L.push('- Dialogue "' + d.title + '": ' + (d.done ? 'completed' : 'not done yet')));
     r.pics.forEach(p => L.push('- Picture "' + p.title + '": ' + (p.done ? 'described and checked' : 'not done yet')));
     r.scripts.forEach(sc => { L.push(''); L.push(sc.title + ' (my own text):'); L.push(sc.text || '(not written yet)'); });
@@ -302,11 +308,15 @@ function initExam(ctx){
     const row = (a, b) => `<tr><td>${esc(a)}</td><td>${esc(b)}</td></tr>`;
     const w = r.written.map(x => row(x.title, x.best != null ? `${x.best}% best${x.last != null ? ', last ' + x.last + '%' : ''} · ${x.runs} ${x.runs === 1 ? 'practice' : 'practices'}` : 'not practised yet')).join('');
     const m = r.mocks.length ? r.mocks.slice(0, 5).map(x => row(fmtDate(x.at), `${x.score}/${x.total} (${pct(x.score, x.total)}%)`)).join('') + Object.keys(r.parts).map(k => row('Average · ' + k, pct(r.parts[k][0], r.parts[k][1]) + '%')).join('') : row('Not taken yet', '');
-    const sp = row('Questions rehearsed', `${r.qaDone} of ${r.qaTotal}`) + r.dl.map(d => row('Dialogue: ' + d.title, d.done ? 'completed' : 'not done yet')).join('') + r.pics.map(p => row('Picture: ' + p.title, p.done ? 'described and checked' : 'not done yet')).join('');
+    let cur = '';
+    const mi = r.mistakes.length ? r.mistakes.map(m => { const head = m.sec !== cur ? `<tr><td colspan="2" class="rp-sec">${esc(m.sec)}</td></tr>` : ''; cur = m.sec; return head + `<tr><td>${esc(m.prompt)}<br><span class="rp-sub">my answer: ${esc(m.your || '(none)')}${m.n > 1 ? ' · missed ' + m.n + ' times' : ''}</span></td><td><b>${esc(m.correct)}</b></td></tr>`; }).join('') : row('No open mistakes', '');
+    const qm = r.qaMiss.length ? `<tr><td colspan="2">Still to practise: ${r.qaMiss.map(esc).join(' · ')}</td></tr>` : '';
+    const sp = qm + row('Questions rehearsed', `${r.qaDone} of ${r.qaTotal}`) + r.dl.map(d => row('Dialogue: ' + d.title, d.done ? 'completed' : 'not done yet')).join('') + r.pics.map(p => row('Picture: ' + p.title, p.done ? 'described and checked' : 'not done yet')).join('');
     const sc = r.scripts.map(x => `<h4>${esc(x.title)} (my own text)</h4><p class="rp-text">${x.text ? esc(x.text) : '<i>not written yet</i>'}</p>`).join('');
     return `<h2>Lithuanian exam practice</h2><p class="rp-meta"><b>Student:</b> ${esc(r.name || '(name not entered)')} · <b>Date:</b> ${esc(r.date)}</p>
       <h3>Written part</h3><table>${w}</table>
       <h3>Mock written test${r.bestMock != null ? ` · best ${r.bestMock}%` : ''}</h3><table>${m}</table>
+      <h3>Mistakes to review (${r.mistakes.length})</h3><table>${mi}</table>
       <h3>Speaking part</h3><table>${sp}</table>${sc}
       <p class="rp-note">Speaking is self-assessed because the app cannot hear speech. The content is AI-written and has not been checked by a native speaker.</p>`;
   }
@@ -317,13 +327,13 @@ function initExam(ctx){
       <p class="ex-p">Add your name, then send it to your teacher. Everything comes from what you practised on this device.</p>
       <label class="ex-p" for="exname"><b>Your name</b></label>
       <input id="exname" class="ex-in" type="text" autocomplete="name" placeholder="Name and surname" value="${esc(saved.name)}">
-      <div class="ex-actions">${canShare ? '<button type="button" class="btn green" data-ex="rshare">Share…</button>' : ''}<button type="button" class="btn ${canShare ? '' : 'green'}" data-ex="rcopy">Copy as text</button><button type="button" class="btn" data-ex="rdl">Download page</button><button type="button" class="btn" data-ex="rprint">Print / save PDF</button></div>
+      <div class="ex-actions">${canShare ? '<button type="button" class="btn green" data-ex="rshare">Share…</button>' : ''}<button type="button" class="btn ${canShare ? '' : 'green'}" data-ex="rcopy">Copy as text</button><button type="button" class="btn" data-ex="rdl">Download page</button><button type="button" class="btn" data-ex="rprint">Print / save PDF</button><button type="button" class="linkbtn" data-ex="clearmist">Clear mistakes list</button></div>
       <div id="exrnote" class="ex-note" role="status" hidden></div>
       <div class="ex-report" id="exreport">${reportHtml(r)}</div></div>`;
   }
   const rnote = msg => { const n = root.querySelector('#exrnote'); if(n){ n.textContent = msg; n.hidden = false; } };
   function reportFileHtml(r){
-    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lithuanian exam practice – ${esc(r.name || 'report')}</title><style>body{font:16px/1.5 system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 16px;color:#222}h2{margin:0 0 4px}h3{margin:22px 0 6px;border-bottom:1px solid #ccc;padding-bottom:4px}h4{margin:16px 0 4px}table{border-collapse:collapse;width:100%}td{padding:5px 8px;border-bottom:1px solid #eee;vertical-align:top}td:last-child{text-align:right}.rp-text{white-space:pre-wrap}.rp-note{color:#666;font-size:13px;margin-top:22px}</style></head><body>${reportHtml(r)}</body></html>`;
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lithuanian exam practice – ${esc(r.name || 'report')}</title><style>body{font:16px/1.5 system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 16px;color:#222}h2{margin:0 0 4px}h3{margin:22px 0 6px;border-bottom:1px solid #ccc;padding-bottom:4px}h4{margin:16px 0 4px}table{border-collapse:collapse;width:100%}td{padding:5px 8px;border-bottom:1px solid #eee;vertical-align:top}td:last-child{text-align:right}.rp-text{white-space:pre-wrap}.rp-sec{font-weight:700;background:#f4f4f4}.rp-sub{color:#777;font-size:13px}.rp-note{color:#666;font-size:13px;margin-top:22px}</style></head><body>${reportHtml(r)}</body></html>`;
   }
   async function reportShare(){
     const r = reportData(), text = reportText(r), name = 'lithuanian-report-' + r.date + '.html';
@@ -479,6 +489,15 @@ function initExam(ctx){
     const s = session, q = s.qs[s.i];
     s.points += res === 'ok' ? 1 : res === 'near' ? .5 : 0;
     s.log.push({q, res, your});
+    const plain = h => String(h == null ? '' : h).replace(/<[^>]*>/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s+/g, ' ').trim();
+    const sec = s.mock ? (q.part || 'Mock test') : (s.title || s.id), prompt = plain(q.prompt) + (q.listen && q.say ? ' (audio: ' + q.say + ')' : ''), correct = plain(q.show), key = sec + '|' + prompt + '|' + correct;
+    if(res === 'ok') delete saved.mistakes[key];
+    else{
+      const old = saved.mistakes[key];
+      saved.mistakes[key] = {sec, prompt, correct, your: plain(your), res, at: Date.now(), n: (old ? old.n : 0) + 1};
+      const ks = Object.keys(saved.mistakes); if(ks.length > 150){ ks.sort((a, b) => saved.mistakes[a].at - saved.mistakes[b].at).slice(0, ks.length - 150).forEach(k => delete saved.mistakes[k]); }
+    }
+    persist();
   }
   function advance(){
     session.i++; session.answered = false;
@@ -562,6 +581,7 @@ function initExam(ctx){
       else if(v.startsWith('dlg:')) startDialog(v.slice(4));
       draw();
     },
+    clearmist: () => { saved.mistakes = {}; saved.qaMiss = {}; persist(); draw(); },
     resetscript: v => { delete saved.scripts[v]; persist(); draw(); },
     picsel: v => { pic = {i: +v, step: 0}; draw(); },
     picreveal: () => { pic.step = pic.step ? 0 : 1; if(pic.step && PICTURES[pic.i]){ saved.done['pic:' + PICTURES[pic.i].title] = Date.now(); persist(); } draw(); },
@@ -570,8 +590,8 @@ function initExam(ctx){
     dopt: v => { if(dlg.picked != null) return; dlg.picked = +v; draw(); },
     qalisten: () => { qa.listen = !qa.listen; draw(); },
     qareveal: () => { qa.reveal = !qa.reveal; draw(); },
-    qagot: () => { saved.qa[QA[qa.order[qa.i]][0]] = Date.now(); persist(); qa.ok++; qa.i++; qa.reveal = false; draw(); },
-    qaagain: () => { qa.i++; qa.reveal = false; draw(); }
+    qagot: () => { const qq = QA[qa.order[qa.i]][0]; saved.qa[qq] = Date.now(); delete saved.qaMiss[qq]; persist(); qa.ok++; qa.i++; qa.reveal = false; draw(); },
+    qaagain: () => { saved.qaMiss[QA[qa.order[qa.i]][0]] = Date.now(); persist(); qa.i++; qa.reveal = false; draw(); }
   };
 
   let wired = false;
