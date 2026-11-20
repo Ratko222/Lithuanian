@@ -244,11 +244,12 @@ async function startApp(CATS, GRAMMAR, FORMS){
   const isMastered = k => mode === 'flash' ? !!(progress.flash[k] && progress.flash[k].mastered) : level(k) >= 3;
   const GROUPS = [
     {id:'basics', name:'Basics', cats:['greetings','phrases','numbers','colors','days','months','time']},
-    {id:'people', name:'People', cats:['family','iylt','identity','relationships']},
+    {id:'pictures', name:'Pictures', cats:['iylt','natscene']},
+    {id:'people', name:'People', cats:['family','identity','relationships']},
     {id:'food', name:'Food', cats:['food','meat','fish','dairy','bakery','vegetables','fruits','canned','meals','dining']},
     {id:'shopping', name:'Shopping & Services', cats:['supermarket','shopping','shopping-phrases','commerce','services']},
     {id:'home', name:'Home & Daily Life', cats:['home','housing','household','dailylife','clothing']},
-    {id:'world', name:'World & Leisure', cats:['nature','natscene','animals','travel','directions','leisure']},
+    {id:'world', name:'World & Leisure', cats:['nature','animals','travel','directions','leisure']},
     {id:'health', name:'Health & Learning', cats:['health','education']}
   ];
   const GOF = {};
