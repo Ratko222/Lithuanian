@@ -16,3 +16,10 @@ then open http://localhost:8000. Any static host works (GitHub Pages, Netlify, .
 ## Phone / offline
 
 `manifest.json` and `sw.js` make the app installable and usable offline once it has been opened over HTTPS (or localhost). Publish the folder on any static host, for example GitHub Pages: push the files to a repository, turn on Pages in its settings, open the link on the phone, then use "Add to Home Screen". After the first visit it works without a connection. When you change a file, raise the version in `CACHE` inside `sw.js` so phones pick up the update.
+
+## Visit and install counts
+
+Counting uses GoatCounter and is off until `GC_CODE` is set at the bottom of `app.js`.
+Intended account: `lithuanian` (dashboard: https://lithuanian.goatcounter.com), site domain `ratko222.github.io`.
+Events: page visits, `app-installed` (Android Chrome installs only), `opened-as-app`.
+To check the numbers, open the dashboard while signed in (the password is the owner's).
