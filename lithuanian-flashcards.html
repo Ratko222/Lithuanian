@@ -526,7 +526,23 @@ function initExam(ctx){
     ['Kaip jums sekasi?', 'How are you doing?', 'Ačiū, gerai. O jums?', 'Thank you, well. And you?'],
     ['Ką norėtumėte gerti?', 'What would you like to drink?', 'Norėčiau kavos, prašau.', 'I would like some coffee, please.'],
     ['Ką veikėte vakar?', 'What did you do yesterday?', 'Vakar dirbau ir žiūrėjau filmą.', 'Yesterday I worked and watched a film.'],
-    ['Kur yra stotis?', 'Where is the station?', 'Stotis yra kairėje, netoli aikštės.', 'The station is on the left, near the square.']
+    ['Kur yra stotis?', 'Where is the station?', 'Stotis yra kairėje, netoli aikštės.', 'The station is on the left, near the square.'],
+    ['Iš kokios šalies esate?', 'Which country are you from?', 'Esu iš [Lenkijos].', 'I am from [country, genitive].'],
+    ['Iš kokio miesto esate?', 'Which city are you from?', 'Esu iš [Varšuvos].', 'I am from [city, genitive].'],
+    ['Kokiomis kalbomis kalbate?', 'Which languages do you speak?', 'Kalbu [lenkiškai, angliškai] ir šiek tiek lietuviškai.', 'I speak [Polish, English] and a little Lithuanian.'],
+    ['Ką esate šiandien apsirengęs?', 'What are you wearing today? (apsirengusi if you are a woman)', 'Šiandien esu apsirengęs [džinsais ir šiltu megztiniu]. / [apsirengusi]', 'Today I am wearing [jeans and a warm jumper]. (use the instrumental: džinsais, megztiniu)'],
+    ['Kaip atvykote į pamoką – mašina ar autobusu?', 'How did you come to class – by car or by bus?', 'Į pamoką atvykau [autobusu]. / [mašina].', 'I came to class [by bus] / [by car].'],
+    ['Kur studijuojate?', 'Where do you study?', 'Studijuoju [universitete]. / Nestudijuoju. Aš dirbu [biure].', 'I study [at a university]. / I do not study. I work [in an office].'],
+    ['Kur dirbate?', 'Where do you work?', 'Dirbu [parduotuvėje / biure / ligoninėje].', 'I work [in a shop / an office / a hospital].'],
+    ['Sesė vyresnė ar jaunesnė?', 'Is your sister older or younger?', 'Mano sesuo yra [vyresnė / jaunesnė] už mane.', 'My sister is [older / younger] than me.'],
+    ['Ką mėgsta veikti jūsų sesė / brolis?', 'What does your sister / brother like to do?', 'Mano sesuo mėgsta [skaityti knygas]. / Mano brolis mėgsta [žaisti futbolą].', 'My sister likes [reading books]. / My brother likes [playing football].'],
+    ['Koks miestas jums patinka?', 'Which city do you like?', 'Man patinka [Vilnius].', 'I like [Vilnius].'],
+    ['Koks maistas jums patinka?', 'Which food do you like?', 'Man patinka [itališkas maistas].', 'I like [Italian food].'],
+    ['Kokia jūsų lytis?', 'What is your gender?', 'Aš esu [vyras / moteris].', 'I am [male / female].'],
+    ['Kokia jūsų pilietybė?', 'What is your citizenship?', 'Esu [Lenkijos] pilietis. / pilietė.', 'I am a citizen of [Poland]. (pilietis = man, pilietė = woman)'],
+    ['Koks jūsų adresas?', 'What is your address?', 'Mano adresas yra [Gedimino prospektas 10, Vilnius].', 'My address is [street and number, city].'],
+    ['Koks jūsų telefonas?', 'What is your phone number?', 'Mano telefono numeris yra [+370 6xx xxxxx].', 'My phone number is [number].'],
+    ['Kokia jūsų šeiminė padėtis?', 'What is your marital status?', 'Esu [vedęs / ištekėjusi]. / Esu [nevedęs / netekėjusi].', 'I am [married] / [single]. (vedęs / nevedęs = man, ištekėjusi / netekėjusi = woman)']
   ];
   const DIALOGS = [
     {id: 'cafe', title: 'In a café', lines: [
