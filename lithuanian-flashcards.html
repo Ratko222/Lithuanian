@@ -313,6 +313,17 @@ footer a,footer .linkbtn{color:var(--soft)}
 .photo-body h3{margin:0 0 2px;font:600 18px/1.2 var(--serif)}
 .photo-body p{margin:0 0 10px;color:var(--soft);font-size:13px}
 .photo-btns{display:flex;gap:8px;flex-wrap:wrap}
+
+.ex-in{width:100%;max-width:420px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);font:inherit;margin:2px 0 4px}
+.ex-report{margin-top:16px;padding:18px 18px 8px;border:1px solid var(--line);border-radius:14px;background:var(--raised)}
+.ex-report h2{margin:0 0 4px;font:600 22px/1.2 var(--serif);color:var(--forest)}
+.ex-report h3{margin:18px 0 6px;font-size:15px;border-bottom:1px solid var(--line);padding-bottom:4px}
+.ex-report h4{margin:14px 0 4px;font-size:14px}
+.ex-report table{width:100%;border-collapse:collapse;font-size:14px}
+.ex-report td{padding:5px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.ex-report td:last-child{text-align:right;padding-left:12px}
+.rp-meta{margin:0;color:var(--soft);font-size:14px}.rp-text{white-space:pre-wrap;font-size:14px;margin:0}.rp-note{color:var(--soft);font-size:12.5px;margin-top:16px}
+@media print{body *{visibility:hidden}.ex-report,.ex-report *{visibility:visible}.ex-report{position:absolute;left:0;top:0;width:100%;border:0;background:#fff;color:#000}}
 </style>
 </head>
 <body>
@@ -373,8 +384,8 @@ footer a,footer .linkbtn{color:var(--soft)}
 function initExam(ctx){
   const {esc, speak, hasTTS} = ctx;
   const KEY = 'lt_exam_v1';
-  let saved = {best: {}, scripts: {}, mocks: []};
-  try{ const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if(s && typeof s === 'object'){ saved.best = s.best || {}; saved.scripts = s.scripts || {}; saved.mocks = Array.isArray(s.mocks) ? s.mocks.slice(-10) : []; } }catch(e){}
+  let saved = {best: {}, scripts: {}, mocks: [], name: '', runs: {}, last: {}, qa: {}, done: {}};
+  try{ const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if(s && typeof s === 'object'){ saved.best = s.best || {}; saved.scripts = s.scripts || {}; saved.mocks = Array.isArray(s.mocks) ? s.mocks.slice(-10) : []; ['runs','last','qa','done'].forEach(k => { if(s[k] && typeof s[k] === 'object') saved[k] = s[k]; }); if(typeof s.name === 'string') saved.name = s.name; } }catch(e){}
   const persist = () => { try{ localStorage.setItem(KEY, JSON.stringify(saved)); }catch(e){} };
 
   /* ---------- helpers ---------- */
@@ -628,10 +639,90 @@ function initExam(ctx){
       <h2 class="serif ex-h">Exam preparation</h2>
       <p class="ex-p">Written part first, then the speaking part. Typing without the Lithuanian letters (ą č ę ė į š ų ū ž) counts as half a point in the mock test, so practise the letters.</p>
       <div class="ex-mock"><div><b>Mock written test</b><span>30 questions across all six topics, answer shown after each one${last ? ` · last ${last.score}/${last.total}` : ''}${saved.best.mock != null ? ` · best ${saved.best.mock}%` : ''}</span></div><button type="button" class="btn green" data-ex="mock">Start mock test</button></div>
+      <div class="ex-mock"><div><b>Report card for my teacher</b><span>Scores, mock results and speaking progress in one page you can send</span></div><button type="button" class="btn" data-ex="report">Make report</button></div>
       <h3 class="ex-h3">✍️ Written part</h3><div class="ex-grid">${wr}</div>
       <h3 class="ex-h3">🗣️ Speaking part</h3>
       <p class="ex-p">The app cannot hear you, so say every answer out loud, then check it against the model. Use the speaker buttons to hear how it sounds.</p>
       <div class="ex-grid">${sp}</div></div>`;
+  }
+
+  /* ---------- report card ---------- */
+  const fmtDate = ts => { const d = new Date(ts); return d.toISOString().slice(0, 10); };
+  function reportData(){
+    const written = SECTIONS.map(x => ({title: x.title, best: saved.best[x.id], last: saved.last[x.id] ? saved.last[x.id].p : null, runs: saved.runs[x.id] || 0}));
+    const mocks = saved.mocks.slice().reverse();
+    const parts = {}; saved.mocks.forEach(m => { if(m.parts) Object.keys(m.parts).forEach(k => { const a = parts[k] || (parts[k] = [0, 0]); a[0] += m.parts[k][0]; a[1] += m.parts[k][1]; }); });
+    const qaDone = Object.keys(saved.qa).filter(q => QA.some(x => x[0] === q)).length;
+    const dl = DIALOGS.map(d => ({title: d.title, done: !!saved.done['dlg:' + d.title]}));
+    const pics = PICTURES.map(p => ({title: p.title, done: !!saved.done['pic:' + p.title]}));
+    const scripts = ['intro', 'family'].map(id => ({title: SCRIPTS[id].title, text: saved.scripts[id] != null && saved.scripts[id].trim() && saved.scripts[id] !== SCRIPTS[id].starter ? saved.scripts[id].trim() : ''}));
+    return {name: (saved.name || '').trim(), date: fmtDate(Date.now()), written, mocks, parts, bestMock: saved.best.mock, qaDone, qaTotal: QA.length, dl, pics, scripts};
+  }
+  function reportText(r){
+    const L = [];
+    L.push('Lithuanian exam practice – report card');
+    L.push('Student: ' + (r.name || '(name not entered)'));
+    L.push('Date: ' + r.date); L.push('');
+    L.push('WRITTEN PART (best score per topic)');
+    r.written.forEach(w => L.push('- ' + w.title + ': ' + (w.best != null ? w.best + '% best' + (w.last != null ? ', last ' + w.last + '%' : '') + ', ' + w.runs + ' ' + (w.runs === 1 ? 'practice' : 'practices') : 'not practised yet')));
+    L.push(''); L.push('MOCK WRITTEN TEST (30 questions)');
+    if(r.mocks.length){
+      L.push('Best: ' + r.bestMock + '%');
+      r.mocks.slice(0, 5).forEach(m => L.push('- ' + fmtDate(m.at) + ': ' + m.score + '/' + m.total + ' (' + pct(m.score, m.total) + '%)'));
+      const ks = Object.keys(r.parts); if(ks.length){ L.push('Average by part:'); ks.forEach(k => L.push('  ' + k + ': ' + pct(r.parts[k][0], r.parts[k][1]) + '%')); }
+    }else L.push('Not taken yet.');
+    L.push(''); L.push('SPEAKING PART (self-assessed; the app cannot hear speech)');
+    L.push('- Questions rehearsed: ' + r.qaDone + ' of ' + r.qaTotal);
+    r.dl.forEach(d => L.push('- Dialogue "' + d.title + '": ' + (d.done ? 'completed' : 'not done yet')));
+    r.pics.forEach(p => L.push('- Picture "' + p.title + '": ' + (p.done ? 'described and checked' : 'not done yet')));
+    r.scripts.forEach(sc => { L.push(''); L.push(sc.title + ' (my own text):'); L.push(sc.text || '(not written yet)'); });
+    L.push(''); L.push('Content is AI-written and not checked by a native speaker.');
+    return L.join('\n');
+  }
+  function reportHtml(r){
+    const row = (a, b) => `<tr><td>${esc(a)}</td><td>${esc(b)}</td></tr>`;
+    const w = r.written.map(x => row(x.title, x.best != null ? `${x.best}% best${x.last != null ? ', last ' + x.last + '%' : ''} · ${x.runs} ${x.runs === 1 ? 'practice' : 'practices'}` : 'not practised yet')).join('');
+    const m = r.mocks.length ? r.mocks.slice(0, 5).map(x => row(fmtDate(x.at), `${x.score}/${x.total} (${pct(x.score, x.total)}%)`)).join('') + Object.keys(r.parts).map(k => row('Average · ' + k, pct(r.parts[k][0], r.parts[k][1]) + '%')).join('') : row('Not taken yet', '');
+    const sp = row('Questions rehearsed', `${r.qaDone} of ${r.qaTotal}`) + r.dl.map(d => row('Dialogue: ' + d.title, d.done ? 'completed' : 'not done yet')).join('') + r.pics.map(p => row('Picture: ' + p.title, p.done ? 'described and checked' : 'not done yet')).join('');
+    const sc = r.scripts.map(x => `<h4>${esc(x.title)} (my own text)</h4><p class="rp-text">${x.text ? esc(x.text) : '<i>not written yet</i>'}</p>`).join('');
+    return `<h2>Lithuanian exam practice</h2><p class="rp-meta"><b>Student:</b> ${esc(r.name || '(name not entered)')} · <b>Date:</b> ${esc(r.date)}</p>
+      <h3>Written part</h3><table>${w}</table>
+      <h3>Mock written test${r.bestMock != null ? ` · best ${r.bestMock}%` : ''}</h3><table>${m}</table>
+      <h3>Speaking part</h3><table>${sp}</table>${sc}
+      <p class="rp-note">Speaking is self-assessed because the app cannot hear speech. The content is AI-written and has not been checked by a native speaker.</p>`;
+  }
+  function reportViewHtml(){
+    const r = reportData();
+    const canShare = typeof navigator !== 'undefined' && !!navigator.share;
+    return `<div class="ex">${backBtn('home')}<h2 class="serif ex-h">Report card</h2>
+      <p class="ex-p">Add your name, then send it to your teacher. Everything comes from what you practised on this device.</p>
+      <label class="ex-p" for="exname"><b>Your name</b></label>
+      <input id="exname" class="ex-in" type="text" autocomplete="name" placeholder="Name and surname" value="${esc(saved.name)}">
+      <div class="ex-actions">${canShare ? '<button type="button" class="btn green" data-ex="rshare">Share…</button>' : ''}<button type="button" class="btn ${canShare ? '' : 'green'}" data-ex="rcopy">Copy as text</button><button type="button" class="btn" data-ex="rdl">Download page</button><button type="button" class="btn" data-ex="rprint">Print / save PDF</button></div>
+      <div id="exrnote" class="ex-note" role="status" hidden></div>
+      <div class="ex-report" id="exreport">${reportHtml(r)}</div></div>`;
+  }
+  const rnote = msg => { const n = root.querySelector('#exrnote'); if(n){ n.textContent = msg; n.hidden = false; } };
+  function reportFileHtml(r){
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lithuanian exam practice – ${esc(r.name || 'report')}</title><style>body{font:16px/1.5 system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 16px;color:#222}h2{margin:0 0 4px}h3{margin:22px 0 6px;border-bottom:1px solid #ccc;padding-bottom:4px}h4{margin:16px 0 4px}table{border-collapse:collapse;width:100%}td{padding:5px 8px;border-bottom:1px solid #eee;vertical-align:top}td:last-child{text-align:right}.rp-text{white-space:pre-wrap}.rp-note{color:#666;font-size:13px;margin-top:22px}</style></head><body>${reportHtml(r)}</body></html>`;
+  }
+  async function reportShare(){
+    const r = reportData(), text = reportText(r), name = 'lithuanian-report-' + r.date + '.html';
+    try{
+      const file = new File([reportFileHtml(r)], name, {type: 'text/html'});
+      if(navigator.canShare && navigator.canShare({files: [file]})){ await navigator.share({files: [file], title: 'Lithuanian exam practice', text}); return; }
+    }catch(e){ if(e && e.name === 'AbortError') return; }
+    try{ await navigator.share({title: 'Lithuanian exam practice', text}); }catch(e){}
+  }
+  async function reportCopy(){
+    const text = reportText(reportData());
+    try{ await navigator.clipboard.writeText(text); rnote('Copied. Paste it into an email or message.'); }
+    catch(e){ const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); rnote('Copied. Paste it into an email or message.'); }catch(err){ rnote('Could not copy. Use Download page instead.'); } ta.remove(); }
+  }
+  function reportDownload(){
+    const r = reportData(), blob = new Blob([reportFileHtml(r)], {type: 'text/html'}), a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'lithuanian-report-' + r.date + '.html'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000); rnote('Downloaded. Attach the file to an email.');
   }
   const backBtn = (to) => `<button type="button" class="linkbtn ex-back" data-ex="${to || 'home'}">← Exam preparation</button>`;
 
@@ -755,8 +846,15 @@ function initExam(ctx){
   function finish(){
     session.done = true;
     const p = pct(session.points, session.qs.length);
-    recordBest(session.mock ? 'mock' : session.id, p);
-    if(session.mock){ saved.mocks.push({score: session.points, total: session.qs.length, at: Date.now()}); saved.mocks = saved.mocks.slice(-10); persist(); }
+    const sid = session.mock ? 'mock' : session.id;
+    recordBest(sid, p);
+    saved.runs[sid] = (saved.runs[sid] || 0) + 1; saved.last[sid] = {p, at: Date.now()};
+    if(session.mock){
+      const parts = {};
+      session.log.forEach(l => { const k = l.q.part || '?'; const a = parts[k] || (parts[k] = [0, 0]); a[0] += l.res === 'ok' ? 1 : l.res === 'near' ? .5 : 0; a[1]++; });
+      saved.mocks.push({score: session.points, total: session.qs.length, at: Date.now(), parts}); saved.mocks = saved.mocks.slice(-10);
+    }
+    persist();
   }
   function record(res, your){
     const s = session, q = s.qs[s.i];
@@ -790,6 +888,7 @@ function initExam(ctx){
     else if(view === 'pic') h = picHtml();
     else if(view === 'dlg') h = dlgHtml();
     else if(view === 'qa') h = qaHtml();
+    else if(view === 'report') h = reportViewHtml();
     root.innerHTML = h;
     const inp = root.querySelector('#exin'); if(inp) inp.focus({preventScroll: true});
     if(view === 'practice' && session && !session.done){
@@ -825,6 +924,11 @@ function initExam(ctx){
 
   const actions = {
     home: () => { view = 'home'; draw(); },
+    report: () => { view = 'report'; draw(); },
+    rshare: () => reportShare(),
+    rcopy: () => reportCopy(),
+    rdl: () => reportDownload(),
+    rprint: () => window.print(),
     speaklist: () => { view = 'speaklist'; draw(); },
     practice: v => { startPractice(v); draw(); },
     mock: () => { startMock(); draw(); },
@@ -841,13 +945,13 @@ function initExam(ctx){
     },
     resetscript: v => { delete saved.scripts[v]; persist(); draw(); },
     picsel: v => { pic = {i: +v, step: 0}; draw(); },
-    picreveal: () => { pic.step = pic.step ? 0 : 1; draw(); },
+    picreveal: () => { pic.step = pic.step ? 0 : 1; if(pic.step && PICTURES[pic.i]){ saved.done['pic:' + PICTURES[pic.i].title] = Date.now(); persist(); } draw(); },
     toggleEn: () => { dlg.showEn = !dlg.showEn; draw(); },
-    dnext: () => { dlg.i++; dlg.showEn = false; prepLine(); draw() },
+    dnext: () => { dlg.i++; dlg.showEn = false; prepLine(); if(dlg.i >= dlg.d.lines.length){ saved.done['dlg:' + dlg.d.title] = Date.now(); persist(); } draw() },
     dopt: v => { if(dlg.picked != null) return; dlg.picked = +v; draw(); },
     qalisten: () => { qa.listen = !qa.listen; draw(); },
     qareveal: () => { qa.reveal = !qa.reveal; draw(); },
-    qagot: () => { qa.ok++; qa.i++; qa.reveal = false; draw(); },
+    qagot: () => { saved.qa[QA[qa.order[qa.i]][0]] = Date.now(); persist(); qa.ok++; qa.i++; qa.reveal = false; draw(); },
     qaagain: () => { qa.i++; qa.reveal = false; draw(); }
   };
 
@@ -862,6 +966,7 @@ function initExam(ctx){
       if(e.target.id === 'exin' && e.key === 'Enter'){ e.preventDefault(); submitTyped(); }
     });
     root.addEventListener('input', e => {
+      if(e.target.id === 'exname'){ saved.name = e.target.value; persist(); const el = root.querySelector('#exreport'); if(el) el.innerHTML = reportHtml(reportData()); return; }
       if(e.target.id === 'exscript'){ const k = e.target.dataset.key || (root.dataset.script); saved.scripts[k] = e.target.value; persist(); }
     });
   }
