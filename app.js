@@ -245,6 +245,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
   const GROUPS = [
     {id:'basics', name:'Basics', cats:['greetings','phrases','numbers','colors','days','months','time']},
     {id:'pictures', name:'Photos', cats:['iylt','natscene']},
+    {id:'reading', name:'Reading', cats:['reading1']},
     {id:'people', name:'People', cats:['family','identity','relationships']},
     {id:'food', name:'Food', cats:['food','meat','fish','dairy','bakery','vegetables','fruits','canned','meals','dining']},
     {id:'shopping', name:'Shopping & Services', cats:['supermarket','shopping','shopping-phrases','commerce','services']},

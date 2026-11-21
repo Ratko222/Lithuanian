@@ -267,7 +267,7 @@ function initExam(ctx){
   /* ---------- state ---------- */
   let view = 'home', session = null, dlg = null, qa = null, pic = null;
   let root = null;
-  function resetUi(){ view = 'home'; session = null; dlg = null; qa = null; pic = null; if(root){ delete root.dataset.script; root.innerHTML = ''; } }
+  function resetUi(){ view = 'home'; session = null; dlg = null; qa = null; pic = null; read = null; if(root){ delete root.dataset.script; root.innerHTML = ''; } }
 
   const pct = (a, b) => b ? Math.round(100 * a / b) : 0;
   const recordBest = (id, p) => { if(!(saved.best[id] >= p)){ saved.best[id] = p; persist(); } };
@@ -279,7 +279,7 @@ function initExam(ctx){
   }
   function homeHtml(){
     const b = id => saved.best[id] != null ? `<small>best ${saved.best[id]}%</small>` : '';
-    const wr = SECTIONS.map(s => `<button type="button" class="ex-tile" data-ex="practice" data-v="${s.id}"><b>${s.title}</b><span>${s.sub}</span>${b(s.id)}</button>`).join('');
+    const wr = SECTIONS.map(s => `<button type="button" class="ex-tile" data-ex="practice" data-v="${s.id}"><b>${s.title}</b><span>${s.sub}</span>${b(s.id)}</button>`).join('') + `<button type="button" class="ex-tile" data-ex="read"><b>Reading</b><span>Mano šeima · true or false</span>${b('read')}</button>`;
     const sp = speakTiles();
     const last = saved.mocks.length ? saved.mocks[saved.mocks.length - 1] : null;
     return `<div class="ex">
@@ -296,7 +296,7 @@ function initExam(ctx){
   /* ---------- report card ---------- */
   const fmtDate = ts => { const d = new Date(ts); return d.toISOString().slice(0, 10); };
   function reportData(){
-    const written = SECTIONS.map(x => ({title: x.title, best: saved.best[x.id], last: saved.last[x.id] ? saved.last[x.id].p : null, runs: saved.runs[x.id] || 0}));
+    const written = SECTIONS.concat([{id: 'read', title: 'Reading: Mano šeima'}]).map(x => ({title: x.title, best: saved.best[x.id], last: saved.last[x.id] ? saved.last[x.id].p : null, runs: saved.runs[x.id] || 0}));
     const mocks = saved.mocks.slice().reverse();
     const parts = {}; saved.mocks.forEach(m => { if(m.parts) Object.keys(m.parts).forEach(k => { const a = parts[k] || (parts[k] = [0, 0]); a[0] += m.parts[k][0]; a[1] += m.parts[k][1]; }); });
     const qaDone = Object.keys(saved.qa).filter(q => QA.some(x => x[0] === q)).length;
@@ -492,6 +492,40 @@ function initExam(ctx){
     return `<div class="ex">${backBtn()}<h2 class="serif ex-h">🗣️ Speaking part</h2><p class="ex-p">The app cannot hear you, so say every answer out loud, then check it against the model. Use the speaker buttons to hear how it sounds.</p><div class="ex-grid">${speakTiles()}</div></div>`;
   }
 
+  /* ---------- reading practice ---------- */
+  const READING = {title: 'Mano šeima', sents: [["Mano vardas yra Rūta.", "My name is Rūta."], ["Mano šeima gyvena prie Vilniaus.", "My family lives near Vilnius."], ["Mūsų namas yra prie upės.", "Our house is by a river."], ["Netoli yra miškas.", "There is a forest nearby."], ["Aš ir mano vyras Petras dažnai vaikščiojame miške.", "My husband Petras and I often walk in the forest."], ["Kasdien vakare mano vyras dirba sode, o aš žiūriu televizorių.", "Every evening my husband works in the garden, and I watch TV."], ["Paulius ir Saulius yra mūsų sūnūs.", "Paulius and Saulius are our sons."], ["Jie jau eina į mokyklą.", "They already go to school."], ["Berniukai labai mėgsta sportą.", "The boys really like sport."], ["Antradienį ir ketvirtadienį jie žaidžia futbolą, o šeštadienį visi kartu važiuojame į baseiną.", "On Tuesdays and Thursdays they play football, and on Saturdays we all go to the swimming pool together."], ["Mano tėvai gyvena Utenoje.", "My parents live in Utena."], ["Savaitgalį dažnai važiuoju pas tėvus.", "At the weekend I often go to my parents’."], ["Kartais mes kartu einame į kavinę arba vaikščiojame parke.", "Sometimes we go to a café together or walk in the park."], ["Aš dirbu Vilniuje, muzikos mokykloje.", "I work in Vilnius, at a music school."], ["Mano vyras yra ekonomistas.", "My husband is an economist."], ["Jis dirba Kaune.", "He works in Kaunas."], ["Petras kasdien rytą važiuoja į darbą, o vakare – namo.", "Every morning Petras goes to work, and in the evening, home."]], paras: [[0, 1, 2, 3, 4, 5], [6, 7, 8, 9], [10, 11, 12], [13, 14, 15, 16]], stm: [["Rūta dirba muzikos mokykloje.", "Rūta works at a music school.", true, "Aš dirbu Vilniuje, muzikos mokykloje."], ["Netoli namo yra miškas.", "There is a forest near the house.", true, "Netoli yra miškas."], ["Rūtos vyras vakare žiūri televizorių.", "Rūta’s husband watches TV in the evening.", false, "Kasdien vakare mano vyras dirba sode, o aš žiūriu televizorių. (Rūta watches TV; he works in the garden.)"], ["Berniukai šeštadienį žaidžia futbolą.", "The boys play football on Saturday.", false, "Antradienį ir ketvirtadienį jie žaidžia futbolą, o šeštadienį visi kartu važiuojame į baseiną. (Football is on Tuesday and Thursday; Saturday is the pool.)"], ["Rūtos tėvai gyvena Utenoje.", "Rūta’s parents live in Utena.", true, "Mano tėvai gyvena Utenoje."], ["Petras dirba Vilniuje.", "Petras works in Vilnius.", false, "Mano vyras yra ekonomistas. Jis dirba Kaune. (He works in Kaunas.)"]]};
+  let read = null;
+  function readHtml(){
+    if(!read) read = {ans: READING.stm.map(() => null), done: false, en: false};
+    const R = READING, st = R.stm;
+    const para = idx => `<p class="ex-para">${idx.map(i => `<span class="ex-lt">${esc(R.sents[i][0])}</span>${read.en ? `<br><small class="ex-en">${esc(R.sents[i][1])}</small><br>` : ' '}`).join('')}</p>`;
+    const row = (x, i) => {
+      const a = read.ans[i], right = x[2];
+      const btn = (val, label) => { let cls = 'ex-opt'; if(read.done){ if(val === right) cls += ' right'; else if(a === val) cls += ' wrong'; } else if(a === val) cls += ' right'; return `<button type="button" class="${cls}" data-ex="rans" data-v="${i}|${val ? 1 : 0}" ${read.done ? 'disabled' : ''}>${label}</button>`; };
+      return `<div class="ex-stm"><div class="ex-q"><b>${i + 1}.</b> <span class="ex-lt">${esc(x[0])}</span> ${spkBtn(x[0])}</div><div class="ex-opts two">${btn(true, 'Teisinga · true')}${btn(false, 'Neteisinga · false')}</div>${read.done ? `<div class="ex-fb ${a === right ? 'ok' : 'no'}">${a === right ? 'Correct.' : 'Not quite.'} <small>${esc(x[1].replace(/\.$/, ''))}. Text: ${esc(x[3])}</small></div>` : ''}</div>`;
+    };
+    const answered = read.ans.every(v => v != null), pts = read.ans.filter((v, i) => v === st[i][2]).length;
+    return `<div class="ex">${backBtn()}<h2 class="serif ex-h">Reading: ${esc(R.title)}</h2>
+      <p class="ex-p">Perskaitykite tekstą ir pažymėkite, kurie teiginiai teisingi, kurie – neteisingi. Read the text, then mark each statement true or false (6 points).</p>
+      <div class="ex-passage"><h3 class="ex-h3">${esc(R.title)}</h3>${R.paras.map(para).join('')}<div class="ex-actions"><button type="button" class="btn" data-ex="rtoggle">${read.en ? 'Hide English' : 'Show English'}</button></div></div>
+      ${st.map(row).join('')}
+      ${read.done ? `<div class="done"><h2>${pts} of ${st.length}</h2><p>${pts === st.length ? 'All correct.' : 'Read the text again and look at the lines marked above.'}</p></div><div class="ex-actions"><button type="button" class="btn green" data-ex="rreset">Try again</button></div>`
+        : `<div class="ex-actions"><button type="button" class="btn green" data-ex="rcheck" ${answered ? '' : 'disabled'}>Check answers</button></div>`}
+      <p class="ex-p"><small>The statements are my own practice questions based on the text.</small></p></div>`;
+  }
+  function readCheck(){
+    if(!read || read.done || !read.ans.every(v => v != null)) return;
+    const st = READING.stm; let pts = 0;
+    st.forEach((x, i) => {
+      const key = 'Reading: ' + READING.title + '|' + x[0] + '|' + (x[2] ? 'true' : 'false');
+      if(read.ans[i] === x[2]){ pts++; delete saved.mistakes[key]; }
+      else saved.mistakes[key] = {sec: 'Reading: ' + READING.title, prompt: x[0], correct: x[2] ? 'true' : 'false', your: read.ans[i] ? 'true' : 'false', res: 'no', at: Date.now(), n: ((saved.mistakes[key] || {}).n || 0) + 1};
+    });
+    const p = Math.round(pts / st.length * 100);
+    recordBest('read', p); saved.runs.read = (saved.runs.read || 0) + 1; saved.last.read = {p, at: Date.now()};
+    read.done = true; persist();
+  }
+
   /* ---------- flow ---------- */
   function startPractice(id){
     const sec = SECTIONS.find(s => s.id === id);
@@ -563,6 +597,7 @@ function initExam(ctx){
     else if(view === 'dlg') h = dlgHtml();
     else if(view === 'qa') h = qaHtml();
     else if(view === 'report') h = reportViewHtml();
+    else if(view === 'read') h = readHtml();
     root.innerHTML = h;
     const inp = root.querySelector('#exin'); if(inp) inp.focus({preventScroll: true});
     if(view === 'practice' && session && !session.done){
@@ -599,6 +634,11 @@ function initExam(ctx){
   const actions = {
     home: () => { view = 'home'; draw(); },
     report: () => { view = 'report'; draw(); },
+    read: () => { view = 'read'; read = null; draw(); },
+    rans: v => { if(read && !read.done){ const [i, t] = v.split('|'); read.ans[+i] = t === '1'; draw(); } },
+    rcheck: () => { readCheck(); draw(); },
+    rreset: () => { read = null; draw(); },
+    rtoggle: () => { read.en = !read.en; draw(); },
     rshare: () => reportShare(),
     rcopy: () => reportCopy(),
     rdl: () => reportDownload(),

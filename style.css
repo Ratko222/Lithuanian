@@ -332,3 +332,9 @@ footer a,footer .linkbtn{color:var(--soft)}
 }
 .ex-report td.rp-sec{text-align:left}
 body.has-install{padding-bottom:120px}
+
+.ex-passage{padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--raised);margin:8px 0 16px}
+.ex-passage .ex-h3{margin:0 0 8px}
+.ex-para{margin:0 0 10px;line-height:1.6}.ex-en{color:var(--soft)}
+.ex-stm{margin:0 0 14px}.ex-opts.two{grid-template-columns:1fr 1fr}
+.ex-fb{margin-top:6px;font-size:14px}.ex-fb.ok{color:var(--forest)}.ex-fb.no{color:var(--brick)}
