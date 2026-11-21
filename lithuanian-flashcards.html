@@ -1521,6 +1521,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
     $('#sync').innerHTML = (user ? `Signed in as ${esc(user)} · <button type="button" class="linkbtn" data-act="logout">Log out</button>`
       : `Playing as guest (progress is kept on this device) · <button type="button" class="linkbtn" data-act="exit">Log in or sign up</button>`)
       + (/^https?:$/.test(location.protocol) && !((window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone) ? ` · <button type="button" class="linkbtn" data-act="installhelp">Install on your phone</button>` : '')
+      + ((/^https?:$/.test(location.protocol) && !(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches))) ? ` · <button type="button" class="linkbtn" data-act="install">Install on your phone</button>` : '')
       + ` · Saved on this device · Pronunciation guide: capitals mark the stressed syllable; use the audio button as the reference.`;
     $('#prefs').innerHTML = (hasTTS ? `<div class="prefrow"><label><input type="checkbox" id="auto" ${prefs.auto?'checked':''}> Play audio automatically on flashcards</label></div>` : '')
       + `<div class="prefrow"><label>Theme <select id="theme"><option value="auto" ${prefs.theme==='auto'?'selected':''}>Match device</option><option value="light" ${prefs.theme==='light'?'selected':''}>Light</option><option value="dark" ${prefs.theme==='dark'?'selected':''}>Dark</option></select></label> · <button type="button" class="linkbtn" data-act="week">${weekOpen ? 'Hide weekly summary' : 'Weekly summary'}</button></div>` + (weekOpen ? weekPanel() : '');
@@ -2075,6 +2076,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
     'forgot': (v, t) => { setAuthMode(authMode === 'reset' ? 'login' : 'reset'); },
     'guest': (v, t) => { enter(null); },
     'speak': (v, t) => { speak(t.dataset.t); },
+    'install': () => { if(window.ltInstallShow) window.ltInstallShow(); },
     'topic': () => { topicOpen = !topicOpen; renderChrome(); },
     'searchtoggle': () => { searchOpen = !searchOpen; if(!searchOpen && searchQ){ searchQ = ''; $('#search').value = ''; renderStage(); } renderChrome(); if(searchOpen) $('#search').focus(); },
     'mode': (v, t) => { topicOpen = false; resetAsk = false; mode = v; searchQ = ''; $('#search').value = ''; if(v !== 'exam' && v !== 'photos'){ validCat(); rebuild(); } render(); },

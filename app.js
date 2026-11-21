@@ -413,6 +413,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
     $('#sync').innerHTML = (user ? `Signed in as ${esc(user)} · <button type="button" class="linkbtn" data-act="logout">Log out</button>`
       : `Playing as guest (progress is kept on this device) · <button type="button" class="linkbtn" data-act="exit">Log in or sign up</button>`)
       + (/^https?:$/.test(location.protocol) && !((window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone) ? ` · <button type="button" class="linkbtn" data-act="installhelp">Install on your phone</button>` : '')
+      + ((/^https?:$/.test(location.protocol) && !(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches))) ? ` · <button type="button" class="linkbtn" data-act="install">Install on your phone</button>` : '')
       + ` · Saved on this device · Pronunciation guide: capitals mark the stressed syllable; use the audio button as the reference.`;
     $('#prefs').innerHTML = (hasTTS ? `<div class="prefrow"><label><input type="checkbox" id="auto" ${prefs.auto?'checked':''}> Play audio automatically on flashcards</label></div>` : '')
       + `<div class="prefrow"><label>Theme <select id="theme"><option value="auto" ${prefs.theme==='auto'?'selected':''}>Match device</option><option value="light" ${prefs.theme==='light'?'selected':''}>Light</option><option value="dark" ${prefs.theme==='dark'?'selected':''}>Dark</option></select></label> · <button type="button" class="linkbtn" data-act="week">${weekOpen ? 'Hide weekly summary' : 'Weekly summary'}</button></div>` + (weekOpen ? weekPanel() : '');
@@ -967,6 +968,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
     'forgot': (v, t) => { setAuthMode(authMode === 'reset' ? 'login' : 'reset'); },
     'guest': (v, t) => { enter(null); },
     'speak': (v, t) => { speak(t.dataset.t); },
+    'install': () => { if(window.ltInstallShow) window.ltInstallShow(); },
     'topic': () => { topicOpen = !topicOpen; renderChrome(); },
     'searchtoggle': () => { searchOpen = !searchOpen; if(!searchOpen && searchQ){ searchQ = ''; $('#search').value = ''; renderStage(); } renderChrome(); if(searchOpen) $('#search').focus(); },
     'mode': (v, t) => { topicOpen = false; resetAsk = false; mode = v; searchQ = ''; $('#search').value = ''; if(v !== 'exam' && v !== 'photos'){ validCat(); rebuild(); } render(); },
@@ -1071,7 +1073,7 @@ Promise.all(['data.json', 'grammar.json', 'forms.json'].map(f => fetch(f).then(r
   const standalone = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone;
   const KEY = 'lt_install_dismissed';
   const dismissed = () => { try{ return localStorage.getItem(KEY) === '1'; }catch(e){ return false; } };
-  let deferred = null, late = false;
+  let deferred = null, late = false, forced = false;
   const android = /android/i.test(navigator.userAgent);
   setTimeout(() => { late = true; show(); }, 3000);
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -1083,10 +1085,13 @@ Promise.all(['data.json', 'grammar.json', 'forms.json'].map(f => fetch(f).then(r
       box.innerHTML = '<div class="installbar"><span>To install: tap <b>Share</b> <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><path d="M12 15V3M8 7l4-4 4 4M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg>, then <b>Add to Home Screen</b></span><button type="button" class="linkbtn" id="inst-x">Got it</button></div>';
     }else if(force && !ios){
       box.innerHTML = '<div class="installbar"><span>To install: open the browser menu <b>\u22ee</b>, then tap <b>Install app</b> or <b>Add to Home screen</b>. If you only see \u201cAdd to Home screen\u201d, that works too. Brave and Firefox don\u2019t show a one-tap button.</span><button type="button" class="linkbtn" id="inst-x">Got it</button></div>';
-    }else if(android && late){
+    }else if(android && (late || forced)){
       box.innerHTML = '<div class="installbar"><span>To install: open the browser menu <b>\u22ee</b>, then tap <b>Install app</b> or <b>Add to Home screen</b></span><button type="button" class="linkbtn" id="inst-x">Got it</button></div>';
+    }else if(forced){
+      box.innerHTML = '<div class="installbar"><span>To install: open your browser menu, then choose <b>Install app</b> or <b>Add to Home screen</b>. On iPhone use Safari: <b>Share</b>, then <b>Add to Home Screen</b>.</span><button type="button" class="linkbtn" id="inst-x">Got it</button></div>';
     }else box.innerHTML = '';
   }
+  window.ltInstallShow = () => { try{ localStorage.removeItem(KEY); }catch(e){} forced = true; show(); };
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; show(); });
   window.addEventListener('appinstalled', () => { deferred = null; box.innerHTML = ''; });
   box.addEventListener('click', e => {
