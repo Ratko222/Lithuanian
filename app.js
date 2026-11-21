@@ -412,6 +412,7 @@ async function startApp(CATS, GRAMMAR, FORMS){
     renderOffer();
     $('#sync').innerHTML = (user ? `Signed in as ${esc(user)} · <button type="button" class="linkbtn" data-act="logout">Log out</button>`
       : `Playing as guest (progress is kept on this device) · <button type="button" class="linkbtn" data-act="exit">Log in or sign up</button>`)
+      + (/^https?:$/.test(location.protocol) && !((window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone) ? ` · <button type="button" class="linkbtn" data-act="installhelp">Install on your phone</button>` : '')
       + ` · Saved on this device · Pronunciation guide: capitals mark the stressed syllable; use the audio button as the reference.`;
     $('#prefs').innerHTML = (hasTTS ? `<div class="prefrow"><label><input type="checkbox" id="auto" ${prefs.auto?'checked':''}> Play audio automatically on flashcards</label></div>` : '')
       + `<div class="prefrow"><label>Theme <select id="theme"><option value="auto" ${prefs.theme==='auto'?'selected':''}>Match device</option><option value="light" ${prefs.theme==='light'?'selected':''}>Light</option><option value="dark" ${prefs.theme==='dark'?'selected':''}>Dark</option></select></label> · <button type="button" class="linkbtn" data-act="week">${weekOpen ? 'Hide weekly summary' : 'Weekly summary'}</button></div>` + (weekOpen ? weekPanel() : '');
@@ -1074,12 +1075,14 @@ Promise.all(['data.json', 'grammar.json', 'forms.json'].map(f => fetch(f).then(r
   const android = /android/i.test(navigator.userAgent);
   setTimeout(() => { late = true; show(); }, 3000);
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  function show(){
-    if(standalone() || dismissed()){ box.innerHTML = ''; return; }
+  function show(force){
+    if(standalone() || (!force && dismissed())){ box.innerHTML = ''; return; }
     if(deferred){
       box.innerHTML = '<div class="installbar"><span>Install this app on your phone</span><button type="button" class="btn green" id="inst-go">Install</button><button type="button" class="linkbtn" id="inst-x">Not now</button></div>';
     }else if(ios){
       box.innerHTML = '<div class="installbar"><span>To install: tap <b>Share</b> <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><path d="M12 15V3M8 7l4-4 4 4M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg>, then <b>Add to Home Screen</b></span><button type="button" class="linkbtn" id="inst-x">Got it</button></div>';
+    }else if(force && !ios){
+      box.innerHTML = '<div class="installbar"><span>To install: open the browser menu <b>\u22ee</b>, then tap <b>Install app</b> or <b>Add to Home screen</b>. If you only see \u201cAdd to Home screen\u201d, that works too. Brave and Firefox don\u2019t show a one-tap button.</span><button type="button" class="linkbtn" id="inst-x">Got it</button></div>';
     }else if(android && late){
       box.innerHTML = '<div class="installbar"><span>To install: open the browser menu <b>\u22ee</b>, then tap <b>Install app</b> or <b>Add to Home screen</b></span><button type="button" class="linkbtn" id="inst-x">Got it</button></div>';
     }else box.innerHTML = '';
@@ -1090,6 +1093,7 @@ Promise.all(['data.json', 'grammar.json', 'forms.json'].map(f => fetch(f).then(r
     if(e.target.id === 'inst-go' && deferred){ deferred.prompt(); deferred.userChoice.finally(() => { deferred = null; box.innerHTML = ''; }); }
     if(e.target.id === 'inst-x'){ try{ localStorage.setItem(KEY, '1'); }catch(err){} box.innerHTML = ''; }
   });
+  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-act=installhelp]'); if(b){ try{ localStorage.removeItem(KEY); }catch(err){} show(true); window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'}); } });
   new MutationObserver(() => document.body.classList.toggle('has-install', !!box.firstElementChild)).observe(box, {childList: true});
   show();
 })();
