@@ -262,7 +262,7 @@ function initExam(ctx){
     }
   };
   const PICTURES = (ctx.pictures || []);
-  const PIC_STARTERS = ['Paveikslėlyje matau…', 'Čia yra…', 'Kairėje yra…', 'Dešinėje yra…', 'Viduryje yra…', 'Priekyje yra…', 'Už jo yra…', 'Jis / Ji turi…', 'Jis / Ji yra…'];
+  const PIC_STARTERS = ['Paveikslėlyje matau…', 'Čia yra…', 'Kairėje yra…', 'Dešinėje yra…', 'Viduryje yra…', 'Priekyje yra…', 'Už jo yra…', 'Jis / Ji turi…', 'Jis / Ji dėvi… (clothes)', 'Jis / Ji yra…'];
 
   /* ---------- state ---------- */
   let view = 'home', session = null, dlg = null, qa = null, pic = null;
