@@ -243,7 +243,8 @@ async function startApp(CATS, GRAMMAR, FORMS){
   const level = k => (progress[mode][k]) || 0;
   const isMastered = k => mode === 'flash' ? !!(progress.flash[k] && progress.flash[k].mastered) : level(k) >= 3;
   const GROUPS = [
-    {id:'basics', name:'Basics', cats:['greetings','phrases','numbers2','numbers','colors','days','months','time']},
+    {id:'basics', name:'Basics', cats:['greetings','phrases','colors','days','months','time']},
+    {id:'numbers', name:'Numbers', cats:['numbers2','numbers']},
     {id:'pictures', name:'Photos', cats:['iylt','natscene']},
     {id:'reading', name:'Reading', cats:['reading1']},
     {id:'people', name:'People', cats:['family','identity','relationships']},
