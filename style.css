@@ -338,3 +338,6 @@ body.has-install{padding-bottom:120px}
 .ex-para{margin:0 0 10px;line-height:1.6}.ex-en{color:var(--soft)}
 .ex-stm{margin:0 0 14px}.ex-opts.two{grid-template-columns:1fr 1fr}
 .ex-fb{margin-top:6px;font-size:14px}.ex-fb.ok{color:var(--forest)}.ex-fb.no{color:var(--brick)}
+
+.updatebar{position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:80;display:flex;gap:10px;align-items:center;width:min(520px,calc(100% - 24px));padding:10px 14px;border:1px solid var(--forest);border-radius:14px;background:var(--raised);box-shadow:0 6px 24px rgba(0,0,0,.22);font-size:14px}
+.updatebar span{flex:1 1 auto}

@@ -36,7 +36,7 @@ js = js.replace(boot, "startApp(%s, %s, %s);\n" % (cats, grammar, forms))
 html = re.sub(r'<link rel="(preconnect|manifest|apple-touch-icon)"[^>]*>\n?', '', html)
 html = re.sub(r'<link href="https://fonts\.googleapis\.com[^>]*>\n?', '', html)
 html = re.sub(r'<meta name="theme-color"[^>]*>\n?', '', html)
-html = re.sub(r'<script>if\("serviceWorker".*?</script>\n?', '', html, flags=re.S)
+html = re.sub(r'<script>\s*\(function\(\)\{\s*if\(!\("serviceWorker".*?</script>\n?', '', html, flags=re.S)
 html = html.replace('<link rel="stylesheet" href="style.css">', '<style>\n' + minify(css, 'css') + '</style>')
 html = html.replace('<script src="app.js"></script>', '<script>\n' + minify(read('exam.js'), 'js') + '</script>\n<script>\n' + minify(js, 'js') + '</script>')
 with open('lithuanian-flashcards.html', 'w', encoding='utf-8') as f:
