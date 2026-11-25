@@ -1,4 +1,4 @@
-import base64, mimetypes, os, re
+import base64, mimetypes, os, re, shutil, subprocess
 
 def read(path):
     with open(path, encoding='utf-8') as f:
@@ -8,6 +8,14 @@ def data_uri(path):
     mime = {'.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.woff2': 'font/woff2', '.svg': 'image/svg+xml'}.get(os.path.splitext(path)[1].lower()) or mimetypes.guess_type(path)[0] or 'application/octet-stream'
     with open(path, 'rb') as fh:
         return 'data:%s;base64,%s' % (mime, base64.b64encode(fh.read()).decode())
+
+def minify(text, loader):
+    # optional: shrinks the single-file build when esbuild is installed; otherwise skipped
+    exe = shutil.which('esbuild')
+    if not exe:
+        return text
+    r = subprocess.run([exe, '--minify', '--loader=' + loader], input=text, capture_output=True, text=True, encoding='utf-8')
+    return r.stdout if r.returncode == 0 and r.stdout else text
 
 html = read('index.html')
 css = read('style.css')
@@ -29,8 +37,8 @@ html = re.sub(r'<link rel="(preconnect|manifest|apple-touch-icon)"[^>]*>\n?', ''
 html = re.sub(r'<link href="https://fonts\.googleapis\.com[^>]*>\n?', '', html)
 html = re.sub(r'<meta name="theme-color"[^>]*>\n?', '', html)
 html = re.sub(r'<script>if\("serviceWorker".*?</script>\n?', '', html, flags=re.S)
-html = html.replace('<link rel="stylesheet" href="style.css">', '<style>\n' + css + '</style>')
-html = html.replace('<script src="exam.js"></script>', '<script>\n' + read('exam.js') + '</script>')
-html = html.replace('<script src="app.js"></script>', '<script>\n' + js + '</script>')
+html = html.replace('<link rel="stylesheet" href="style.css">', '<style>\n' + minify(css, 'css') + '</style>')
+html = html.replace('<script src="exam.js"></script>', '<script>\n' + minify(read('exam.js'), 'js') + '</script>')
+html = html.replace('<script src="app.js"></script>', '<script>\n' + minify(js, 'js') + '</script>')
 with open('lithuanian-flashcards.html', 'w', encoding='utf-8') as f:
     f.write(html)
