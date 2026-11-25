@@ -65,7 +65,36 @@ async function startApp(CATS, GRAMMAR, FORMS){
       if(!ltVoice && !voiceWarned){ voiceWarned = true; const v = $('#voicenote'); if(v) v.textContent = 'No Lithuanian voice was found on this device, so audio may not sound right.'; }
     }catch(e){}
   }
-  const EXAM = initExam({user: () => user, words: WORDS, esc, speak, hasTTS, pictures: ['iylt', 'natscene'].map(id => { const c = CATS.find(x => x.id === id); return c && c.image ? {id, title: id === 'iylt' ? 'Family at home' : 'Nature scene', img: c.image, sentences: (c.full || []).map(f => ({lt: f.lt, en: f.en}))} : null; }).filter(Boolean)});
+  const EXAM_CTX = ({user: () => user, words: WORDS, esc, speak, hasTTS, pictures: ['iylt', 'natscene'].map(id => { const c = CATS.find(x => x.id === id); return c && c.image ? {id, title: id === 'iylt' ? 'Family at home' : 'Nature scene', img: c.image, sentences: (c.full || []).map(f => ({lt: f.lt, en: f.en}))} : null; }).filter(Boolean)});
+  // The exam code (exam.js) loads on first use on the web version. In the single-file build it is already inline, so this is immediate.
+  const EXAM = (() => {
+    let real = null, pending = null;
+    const key = () => 'lt_exam_v2_' + (user || 'guest');
+    const make = () => { if(!real && typeof initExam === 'function') real = initExam(EXAM_CTX); return real; };
+    const load = () => {
+      if(make()) return Promise.resolve(real);
+      if(!pending) pending = new Promise((res, rej) => {
+        const sc = document.createElement('script'); sc.src = 'exam.js';
+        sc.onload = () => { const r = make(); r ? res(r) : (pending = null, rej(new Error('exam'))); };
+        sc.onerror = () => { pending = null; sc.remove(); rej(new Error('exam')); };
+        document.head.appendChild(sc);
+      });
+      return pending;
+    };
+    const stored = () => { try{ let r = JSON.parse(localStorage.getItem(key()) || 'null'); if(r == null && !user) r = JSON.parse(localStorage.getItem('lt_exam_v1') || 'null'); return (r && typeof r === 'object') ? r : {}; }catch(e){ return {}; } };
+    return {
+      reset(){ if(real) real.reset(); },
+      exportData(){ return real ? real.exportData() : stored(); },
+      importData(d){ if(real){ real.importData(d); return; } try{ localStorage.setItem(key(), JSON.stringify(d)); }catch(e){} },
+      clearData(){ if(real){ real.clearData(); return; } try{ localStorage.removeItem(key()); }catch(e){} },
+      mount(st){
+        if(real){ real.mount(st); return; }
+        st.innerHTML = '<p class="snote">Loading exam practice…</p>';
+        load().then(r => { if(mode === 'exam' && !searchQ && $('#stage') === st) r.mount(st); })
+          .catch(() => { if($('#stage') === st) st.innerHTML = '<p class="snote">Couldn’t load exam practice. Check your connection, then try again.</p><button type="button" class="btn green" data-act="mode" data-v="exam">Try again</button>'; });
+      }
+    };
+  })();
   const SPK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4.03v8.05A4.5 4.5 0 0 0 16.5 12zM14 3.23v2.06a7 7 0 0 1 0 13.42v2.06a9 9 0 0 0 0-17.54z"/></svg>';
   const spk = (t, lg) => hasTTS ? `<button type="button" class="spk ${lg?'lg':''}" data-act="speak" data-t="${esc(t)}" aria-label="Play audio">${SPK_ICON}</button>` : '';
 
