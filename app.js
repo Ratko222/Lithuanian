@@ -274,12 +274,13 @@ async function startApp(CATS, GRAMMAR, FORMS){
   const GROUPS = [
     {id:'basics', name:'Basics', cats:['greetings','phrases','colors','days','months','time']},
     {id:'numbers', name:'Numbers', cats:['numbers2','numbers']},
+    {id:'clothes', name:'Clothes', cats:['clothing']},
     {id:'pictures', name:'Photos', cats:['iylt','natscene']},
     {id:'reading', name:'Reading', cats:['reading1']},
     {id:'people', name:'People', cats:['family','identity','relationships']},
     {id:'food', name:'Food', cats:['food','meat','fish','dairy','bakery','vegetables','fruits','canned','meals','dining']},
     {id:'shopping', name:'Shopping & Services', cats:['supermarket','shopping','shopping-phrases','commerce','services']},
-    {id:'home', name:'Home & Daily Life', cats:['home','housing','household','dailylife','clothing']},
+    {id:'home', name:'Home & Daily Life', cats:['home','housing','household','dailylife']},
     {id:'world', name:'World & Leisure', cats:['nature','animals','travel','directions','leisure']},
     {id:'health', name:'Health & Learning', cats:['health','education']}
   ];
