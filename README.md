@@ -17,9 +17,11 @@ then open http://localhost:8000. Any static host works (GitHub Pages, Netlify, .
 
 `manifest.json` and `sw.js` make the app installable and usable offline once it has been opened over HTTPS (or localhost). Publish the folder on any static host, for example GitHub Pages: push the files to a repository, turn on Pages in its settings, open the link on the phone, then use "Add to Home Screen". After the first visit it works without a connection. When you change a file, raise the version in `CACHE` inside `sw.js` so phones pick up the update.
 
-## Visit and install counts
+## License
 
-Counting uses GoatCounter and is on (`GC_CODE = lithuanian` at the bottom of `app.js`).
-Intended account: `lithuanian` (dashboard: https://lithuanian.goatcounter.com), site domain `ratko222.github.io`.
-Events: page visits, `app-installed` (Android Chrome installs only), `opened-as-app`.
-To check the numbers, open the dashboard while signed in (the password is the owner's).
+The code (`index.html`, `style.css`, `app.js`, `exam.js`, `sw.js`, `build_standalone.py`) is released under the [MIT License](LICENSE).
+
+Not covered by the MIT License:
+- **Fonts** in `fonts/` (Literata and Manrope) keep their own SIL Open Font License; see the `LICENSE-*.txt` files there.
+- **Images** in `images/` (the family and nature pictures) belong to their original creators and are not licensed for reuse. Replace them with your own pictures if you publish a copy.
+- **Lithuanian word lists and sentences** (`data.json`, `grammar.json`, `forms.json`) were written with AI help and have not been checked by a native speaker. They come with no warranty.
